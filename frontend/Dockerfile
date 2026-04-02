@@ -22,6 +22,8 @@ RUN npm run build
 # ── Runtime stage ─────────────────────────────────────────────────────
 FROM nginx:alpine AS runtime
 
+RUN apk add --no-cache curl
+
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf      /etc/nginx/templates/ssl.conf
 COPY nginx.init.conf /etc/nginx/templates/init.conf
