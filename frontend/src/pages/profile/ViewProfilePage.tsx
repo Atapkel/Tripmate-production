@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { UserX } from "lucide-react";
+import toast from "react-hot-toast";
+import { UserX, Lock, LogOut } from "lucide-react";
 import { profileService } from "@/services/profileService";
+import { authService } from "@/services/authService";
 import { useAuthStore } from "@/stores/authStore";
 import { queryKeys } from "@/lib/queryKeys";
 import { ROUTES } from "@/lib/constants";
@@ -13,12 +16,25 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ProfileSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function ViewProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const isOwnProfile = !id || (user && id === String(user.id));
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // ignore
+    }
+    logout();
+    navigate(ROUTES.LOGIN, { replace: true });
+    toast.success("Logged out.");
+  };
 
   const { data: profile, isLoading, isError } = useQuery({
     queryKey: isOwnProfile ? queryKeys.profiles.me : queryKeys.profiles.detail(id!),
@@ -46,7 +62,15 @@ export default function ViewProfilePage() {
     <PageContainer>
       <Card className="max-w-2xl mx-auto">
         <div className="flex flex-col items-center mb-6">
-          <Avatar src={photoUrl} initials={getInitials(profile.first_name, profile.last_name)} size="xl" className="mb-3" />
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={`${profile.first_name} ${profile.last_name}`}
+              className="h-28 w-28 rounded-full object-cover mb-3"
+            />
+          ) : (
+            <Avatar initials={getInitials(profile.first_name, profile.last_name)} size="xl" className="mb-3" />
+          )}
           <h2 className="text-xl font-heading font-bold text-text-primary">
             {profile.first_name} {profile.last_name}
           </h2>
@@ -123,11 +147,30 @@ export default function ViewProfilePage() {
         )}
 
         {isOwnProfile && (
-          <Button fullWidth variant="outline" onClick={() => navigate(ROUTES.PROFILE_EDIT)}>
-            Edit Profile
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button fullWidth variant="outline" onClick={() => navigate(ROUTES.PROFILE_EDIT)}>
+              Edit Profile
+            </Button>
+            <Button fullWidth variant="outline" onClick={() => navigate(ROUTES.SETTINGS_PASSWORD)}>
+              <Lock className="h-4 w-4 mr-2" />
+              Change Password
+            </Button>
+            <Button fullWidth variant="outline" onClick={() => setShowLogoutDialog(true)}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Log Out
+            </Button>
+          </div>
         )}
       </Card>
+
+      <ConfirmDialog
+        isOpen={showLogoutDialog}
+        onClose={() => setShowLogoutDialog(false)}
+        onConfirm={handleLogout}
+        title="Log Out"
+        message="Are you sure you want to log out?"
+        confirmLabel="Log Out"
+      />
     </PageContainer>
   );
 }

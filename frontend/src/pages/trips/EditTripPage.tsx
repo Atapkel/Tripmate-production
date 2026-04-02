@@ -79,10 +79,10 @@ export default function EditTripPage() {
         <form onSubmit={handleSubmit((data) => updateMutation.mutate(data))} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Controller name="destination_country_id" control={control} render={({ field }) => (
-              <Select id="dest_country" label="Country" placeholder="Select" options={(countries || []).map((c) => ({ value: c.id, label: c.name }))} error={errors.destination_country_id?.message} value={field.value || ""} onChange={(e) => field.onChange(Number(e.target.value))} />
+              <Select id="dest_country" label="Country" placeholder="Select" options={(countries || []).map((c) => ({ value: c.id, label: c.name }))} error={errors.destination_country_id?.message} value={field.value || ""} onChange={(e) => { const v = e.target.value ? Number(e.target.value) : undefined; field.onChange(v); setValue("destination_city_id", undefined as unknown as number); }} />
             )} />
             <Controller name="destination_city_id" control={control} render={({ field }) => (
-              <Select id="dest_city" label="City" placeholder="Select" options={(destCities || []).map((c) => ({ value: c.id, label: c.name }))} error={errors.destination_city_id?.message} disabled={!destCountryId} value={field.value || ""} onChange={(e) => field.onChange(Number(e.target.value))} />
+              <Select id="dest_city" label="City" placeholder="Select" options={(destCities || []).map((c) => ({ value: c.id, label: c.name }))} error={errors.destination_city_id?.message} disabled={!destCountryId} value={field.value || ""} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} />
             )} />
           </div>
           <Controller name="start_date" control={control} render={() => (
@@ -105,7 +105,7 @@ export default function EditTripPage() {
             formatValue={(v) => `${v.toLocaleString()} KZT`}
             error={errors.max_budget?.message}
           />
-          <Input id="people_needed" label="People Needed" type="number" min={1} {...register("people_needed", { valueAsNumber: true })} />
+          <Input id="people_needed" label="People Needed" type="number" min={1} error={errors.people_needed?.message} {...register("people_needed", { valueAsNumber: true })} />
           <RangeSlider
             label="Age Range"
             min={16}

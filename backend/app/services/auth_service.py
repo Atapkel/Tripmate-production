@@ -42,7 +42,9 @@ class AuthService:
                 email=email, password=hashed_password, role=role
             )
             verification_code = await self._generate_verification_code(user.id, user.email)
-            asyncio.create_task(self._send_verification_email(user.id, user.email, verification_code))
+            sent = await self._send_verification_email(user.id, user.email, verification_code)
+            if not sent:
+                logger.warning("Verification email could not be sent to %s", email)
             return True, user, verification_code, None
         except Exception as e:
             logger.error("Registration failed: %s", e)
@@ -144,7 +146,7 @@ class AuthService:
 
         await self.redis.delete(f"verification_code:{user_id}")
 
-        asyncio.create_task(self._send_welcome_email(user.email))
+        await self._send_welcome_email(user.email)
 
         return True, None
 
@@ -166,7 +168,6 @@ class AuthService:
                 return False, None, "Please wait before requesting a new code"
 
         code = await self._generate_verification_code(user_id, user.email)
-        print(code)
         await self._send_verification_email(user_id, user.email, code)
         return True, code, None
 

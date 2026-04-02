@@ -31,7 +31,9 @@ class EmailService:
         plain_content: Optional[str] = None,
     ) -> bool:
         try:
-            print("Sending email to:", to_email)
+            logger.info(
+                "Sending email to %s via %s:%s", to_email, self.smtp_host, self.smtp_port
+            )
             message = MIMEMultipart("alternative")
             message["From"] = self.from_email
             message["To"] = to_email
@@ -48,11 +50,14 @@ class EmailService:
                 username=self.username,
                 password=self.password,
                 start_tls=True,
+                timeout=30,
             )
             logger.info("Email sent successfully to %s", to_email)
             return True
         except Exception as e:
-            logger.error("Failed to send email to %s: %s", to_email, e)
+            logger.error(
+                "Failed to send email to %s: %s (type: %s)", to_email, e, type(e).__name__
+            )
             return False
 
     # ── VERIFICATION ────────────────────────────────────────────────────
@@ -64,7 +69,6 @@ class EmailService:
         user_id: int,
         language: Language = "en",
     ) -> bool:
-        print(verification_code)
         subject = f"{self.app_name} - Verify Your Email"
 
         html_content = f"""

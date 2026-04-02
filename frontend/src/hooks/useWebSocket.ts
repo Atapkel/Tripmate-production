@@ -3,7 +3,8 @@ import { useAuthStore } from "@/stores/authStore";
 import { useChatStore } from "@/stores/chatStore";
 import type { ChatMessage } from "@/types/chat";
 
-const WS_BASE = import.meta.env.VITE_WS_BASE_URL || `ws://${window.location.host}/api/v1`;
+const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+const WS_BASE = import.meta.env.VITE_WS_BASE_URL || `${wsProtocol}//${window.location.host}/api/v1`;
 const MAX_RECONNECT = 5;
 
 export function useWebSocket(chatId: number | string | null) {
