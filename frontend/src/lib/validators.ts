@@ -48,8 +48,8 @@ export const profileSchema = z.object({
   gender: z.string().min(1, "Select a gender"),
   nationality: z.string().max(100, "Too long").optional().or(z.literal("")),
   bio: z.string().max(500, "Bio can be up to 500 characters").optional().or(z.literal("")),
-  country_id: z.number({ required_error: "Select your country" }),
-  city_id: z.number({ required_error: "Select your city" }),
+  country_id: z.number({ error: "Select your country" }),
+  city_id: z.number({ error: "Select your city" }),
   instagram_handle: z.string().max(100, "Too long").optional().or(z.literal("")),
   telegram_handle: z.string().max(100, "Too long").optional().or(z.literal("")),
 });
@@ -61,13 +61,13 @@ export const preferencesSchema = z.object({
 });
 
 export const tripSchema = z.object({
-  destination_country_id: z.number({ required_error: "Select destination country" }),
-  destination_city_id: z.number({ required_error: "Select destination city" }),
+  destination_country_id: z.number({ error: "Select destination country" }),
+  destination_city_id: z.number({ error: "Select destination city" }),
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
   max_budget: z.number().min(1, "Budget must be positive").max(10_000_000, "Budget seems unrealistic").optional(),
   min_budget: z.number().min(0).optional(),
-  people_needed: z.number().min(1, "At least 1 person needed").default(1),
+  people_needed: z.number().min(1, "At least 1 person needed"),
   min_age: z.number().min(16).max(100).optional(),
   max_age: z.number().min(16).max(100).optional(),
   gender_preference: z.string().optional(),

@@ -3,6 +3,7 @@ export const WS_BASE = import.meta.env.VITE_WS_BASE_URL || `ws://${window.locati
 export const APP_NAME = import.meta.env.VITE_APP_NAME || "TripMate";
 
 export const ROUTES = {
+  LANDING: "/",
   LOGIN: "/login",
   REGISTER: "/register",
   VERIFY_EMAIL: "/verify-email",

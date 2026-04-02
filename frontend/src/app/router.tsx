@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -37,6 +37,7 @@ const ChatRoomPage = lazy(() => import("@/pages/chat/ChatRoomPage"));
 const SettingsPage = lazy(() => import("@/pages/settings/SettingsPage"));
 const ChangePasswordPage = lazy(() => import("@/pages/settings/ChangePasswordPage"));
 
+const LandingPage = lazy(() => import("@/pages/LandingPage"));
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
@@ -54,6 +55,16 @@ function SuspenseWrapper({ children }: { children: React.ReactNode }) {
 }
 
 export const router = createBrowserRouter([
+  // Landing page
+  {
+    path: "/",
+    element: (
+      <PublicRoute>
+        <SuspenseWrapper><LandingPage /></SuspenseWrapper>
+      </PublicRoute>
+    ),
+  },
+
   // Public routes
   {
     element: (
@@ -80,7 +91,6 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: "/", element: <Navigate to="/trips" replace /> },
       { path: "/trips", element: <SuspenseWrapper><TripFeedPage /></SuspenseWrapper> },
       { path: "/trips/new", element: <SuspenseWrapper><CreateTripPage /></SuspenseWrapper> },
       { path: "/trips/me", element: <SuspenseWrapper><MyTripsPage /></SuspenseWrapper> },
