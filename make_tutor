@@ -1,0 +1,15 @@
+  help             Show this help
+  build            Build all containers
+  up               Start all services
+  down             Stop all services
+  restart          Restart all services
+  logs             Follow logs (all services)
+  logs-backend     Follow backend logs
+  logs-frontend    Follow frontend logs
+  ps               Show running containers
+  ssl              First-time SSL setup
+  renew            Force renew SSL certificate
+  shell-backend    Open shell in backend container
+  shell-db         Open psql in database container
+  migrate          Run database migrations
+  clean            Stop and remove all containers, volumes
