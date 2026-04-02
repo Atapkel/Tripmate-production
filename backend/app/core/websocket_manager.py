@@ -43,7 +43,7 @@ class ConnectionManager:
             return
 
         disconnected = []
-        for connection in self.active_connections[chat_group_id]:
+        for connection in list(self.active_connections[chat_group_id]):
             if connection == exclude:
                 continue
             try:
@@ -69,7 +69,7 @@ class ConnectionManager:
             return []
 
         user_ids = set()
-        for connection in self.active_connections[chat_group_id]:
+        for connection in list(self.active_connections[chat_group_id]):
             if connection in self.connection_users:
                 user_ids.add(self.connection_users[connection])
 
