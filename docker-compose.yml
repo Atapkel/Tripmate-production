@@ -36,7 +36,7 @@ services:
         condition: service_healthy
     restart: "no"
     entrypoint: /bin/sh
-    command: >
+    command: |
       -c '
       DOMAIN="tripmate.live"
       EMAIL="tripmate.connect@gmail.com"
