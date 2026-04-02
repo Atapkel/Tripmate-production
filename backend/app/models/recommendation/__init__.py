@@ -1,0 +1,2 @@
+from app.models.recommendation.generated_plans import GeneratedTripPlan
+from app.models.recommendation.recommended_places import RecommendedPlace

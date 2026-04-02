@@ -1,0 +1,65 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tripmate-backend
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  db:
+    image: postgres:16-alpine
+    container_name: tripmate-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tripmate_db}
+      POSTGRES_USER: ${DB_USER:-tripmate}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tripmate_password}
+    ports:
+      - "${DB_EXPOSE_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tripmate} -d ${DB_NAME:-tripmate_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: tripmate-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_EXPOSE_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
