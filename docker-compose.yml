@@ -24,13 +24,44 @@ services:
       timeout: 10s
       retries: 3
 
+  certbot-init:
+    image: certbot/certbot
+    container_name: tripmate-certbot-init
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    depends_on:
+      frontend:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: /bin/sh
+    command: >
+      -c '
+      DOMAIN="tripmate.live"
+      EMAIL="tripmate.connect@gmail.com"
+
+      if [ -d "/etc/letsencrypt/live/$$DOMAIN" ]; then
+        echo "Certificate already exists for $$DOMAIN — skipping."
+        exit 0
+      fi
+
+      echo "Requesting SSL certificate for $$DOMAIN..."
+      certbot certonly --webroot --webroot-path=/var/www/certbot \
+        --email "$$EMAIL" --agree-tos --no-eff-email \
+        -d "$$DOMAIN" -d "www.$$DOMAIN" &&
+      echo "Certificate obtained successfully!" ||
+      echo "Failed to obtain certificate. Check DNS and port 80."
+      '
+
   certbot:
     image: certbot/certbot
     container_name: tripmate-certbot
     volumes:
       - certbot-conf:/etc/letsencrypt
       - certbot-www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
+    restart: unless-stopped
+    entrypoint: /bin/sh
+    command: -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'
 
   backend:
     build:

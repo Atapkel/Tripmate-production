@@ -1,4 +1,4 @@
-.PHONY: help build up down restart logs ssl renew clean ps
+.PHONY: help build up down restart logs renew clean ps
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -6,7 +6,7 @@ help: ## Show this help
 build: ## Build all containers
 	docker compose build
 
-up: ## Start all services
+up: ## Start all services (SSL is automatic on first run)
 	docker compose up -d
 
 down: ## Stop all services
@@ -28,11 +28,8 @@ logs-frontend: ## Follow frontend logs
 ps: ## Show running containers
 	docker compose ps
 
-ssl: ## First-time SSL setup
-	./init-ssl.sh
-
 renew: ## Force renew SSL certificate
-	docker compose run --rm certbot renew --force-renewal
+	docker compose run --rm --entrypoint "" certbot certbot renew --force-renewal
 	docker compose exec frontend nginx -s reload
 
 shell-backend: ## Open shell in backend container
