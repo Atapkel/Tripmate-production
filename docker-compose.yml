@@ -1,4 +1,37 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_WS_BASE_URL: ""
+        VITE_APP_NAME: TripMate
+    container_name: tripmate-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  certbot:
+    image: certbot/certbot
+    container_name: tripmate-certbot
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
+
   backend:
     build:
       context: ./backend
@@ -8,8 +41,8 @@ services:
     dns:
       - 8.8.8.8
       - 8.8.4.4
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
+    expose:
+      - "8000"
     env_file:
       - ./backend/.env
     volumes:
@@ -34,8 +67,8 @@ services:
       POSTGRES_DB: ${DB_NAME:-tripmate_db}
       POSTGRES_USER: ${DB_USER:-tripmate}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-tripmate_password}
-    ports:
-      - "${DB_EXPOSE_PORT:-5432}:5432"
+    expose:
+      - "5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -48,8 +81,8 @@ services:
     image: redis:7-alpine
     container_name: tripmate-redis
     restart: unless-stopped
-    ports:
-      - "${REDIS_EXPOSE_PORT:-6379}:6379"
+    expose:
+      - "6379"
     volumes:
       - redisdata:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -63,3 +96,5 @@ volumes:
   pgdata:
   redisdata:
   uploads:
+  certbot-conf:
+  certbot-www:
