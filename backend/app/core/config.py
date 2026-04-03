@@ -19,12 +19,10 @@ class Settings(BaseSettings):
     REDIS_HOST: str
     REDIS_PORT: int
     REDIS_DB: int
-    # Email
-    MAIL_USERNAME: str
-    MAIL_PASSWORD: str
+    # Email (Mailgun)
+    MAILGUN_API_KEY: str
+    MAILGUN_DOMAIN: str
     MAIL_FROM: str
-    MAIL_PORT: int
-    MAIL_SERVER: str
 
     # Gemini AI
     GEMINI_API_KEY: str

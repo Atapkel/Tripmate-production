@@ -1,9 +1,8 @@
+import asyncio
 import logging
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from typing import Literal, Optional
 
-import aiosmtplib
+import requests
 
 from app.core.config import config
 
@@ -14,12 +13,11 @@ Language = Literal["kk", "ru", "en"]
 
 class EmailService:
     def __init__(self):
-        self.smtp_host = config.MAIL_SERVER
-        self.smtp_port = config.MAIL_PORT
-        self.username = config.MAIL_USERNAME
-        self.password = config.MAIL_PASSWORD
-        self.from_email = config.MAIL_FROM or config.MAIL_USERNAME
+        self.api_key = config.MAILGUN_API_KEY
+        self.domain = config.MAILGUN_DOMAIN
+        self.from_email = config.MAIL_FROM
         self.app_name = config.APPLICATION_NAME
+        self.base_url = f"https://api.mailgun.net/v3/{self.domain}/messages"
 
     # ── TRANSPORT ───────────────────────────────────────────────────────
 
@@ -31,27 +29,25 @@ class EmailService:
         plain_content: Optional[str] = None,
     ) -> bool:
         try:
-            logger.info(
-                "Sending email to %s via %s:%s", to_email, self.smtp_host, self.smtp_port
-            )
-            message = MIMEMultipart("alternative")
-            message["From"] = self.from_email
-            message["To"] = to_email
-            message["Subject"] = subject
+            logger.info("Sending email to %s via Mailgun", to_email)
 
+            data = {
+                "from": self.from_email,
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content,
+            }
             if plain_content:
-                message.attach(MIMEText(plain_content, "plain"))
-            message.attach(MIMEText(html_content, "html"))
+                data["text"] = plain_content
 
-            await aiosmtplib.send(
-                message,
-                hostname=self.smtp_host,
-                port=self.smtp_port,
-                username=self.username,
-                password=self.password,
-                start_tls=True,
-                timeout=30,
+            response = await asyncio.to_thread(
+                requests.post,
+                self.base_url,
+                auth=("api", self.api_key),
+                data=data,
             )
+            response.raise_for_status()
+
             logger.info("Email sent successfully to %s", to_email)
             return True
         except Exception as e:
@@ -69,6 +65,10 @@ class EmailService:
         user_id: int,
         language: Language = "en",
     ) -> bool:
+        logger.info(
+            "send_verification_email — to=%s, user_id=%s, code=%s",
+            to_email, user_id, verification_code,
+        )
         subject = f"{self.app_name} - Verify Your Email"
 
         html_content = f"""

@@ -1,8 +1,11 @@
+import logging
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 from app.api.dependencies import get_current_user, security
 from app.core.config import config
@@ -136,14 +139,17 @@ async def verify_email(
     request: EmailVerificationRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    logger.info("POST /verify-email called — user_id=%s, code=%s", request.user_id, request.verification_code)
     auth_service = AuthService(db)
     success, error = await auth_service.verify_email(
         user_id=request.user_id,
         verification_code=request.verification_code,
     )
     if not success:
+        logger.warning("Email verification failed — user_id=%s, error=%s", request.user_id, error)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
+    logger.info("Email verification succeeded — user_id=%s", request.user_id)
     return {"message": "Email verified successfully"}
 
 
@@ -152,11 +158,14 @@ async def resend_verification(
     request: ResendVerificationRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    logger.info("POST /resend-verification called — user_id=%s", request.user_id)
     auth_service = AuthService(db)
     success, _, error = await auth_service.resend_verification_code(user_id=request.user_id)
     if not success:
+        logger.warning("Resend verification failed — user_id=%s, error=%s", request.user_id, error)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
+    logger.info("Resend verification succeeded — user_id=%s", request.user_id)
     return {"message": "Verification code sent successfully"}
 
 

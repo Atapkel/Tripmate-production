@@ -116,35 +116,60 @@ class AuthService:
     async def verify_email(
         self, user_id: int, verification_code: str
     ) -> Tuple[bool, Optional[str]]:
+        logger.info("verify_email called — user_id=%s, code=%s", user_id, verification_code)
+
         verification_data = await self.redis.get(f"verification_code:{user_id}")
+        logger.info("Redis lookup verification_code:%s — found=%s", user_id, verification_data is not None)
         if not verification_data:
+            logger.warning("No verification data in Redis for user_id=%s", user_id)
             return False, "No verification code found. Please request a new one"
+
+        logger.info(
+            "Verification data — stored_code=%s, expires_at=%s, attempts=%s/%s, email=%s",
+            verification_data["code"],
+            verification_data["expires_at"],
+            verification_data["attempts"],
+            verification_data["max_attempts"],
+            verification_data.get("email"),
+        )
 
         expires_at = datetime.fromisoformat(verification_data["expires_at"]).replace(
             tzinfo=timezone.utc
         )
-        if datetime.now(timezone.utc) > expires_at:
+        now = datetime.now(timezone.utc)
+        if now > expires_at:
+            logger.warning("Verification code expired — now=%s, expires_at=%s", now.isoformat(), expires_at.isoformat())
             await self.redis.delete(f"verification_code:{user_id}")
             return False, "Verification code has expired. Please request a new one"
 
         if verification_data["attempts"] >= verification_data["max_attempts"]:
+            logger.warning("Max attempts exceeded — attempts=%s", verification_data["attempts"])
             await self.redis.delete(f"verification_code:{user_id}")
             return False, "Maximum verification attempts exceeded. Please request a new code"
 
         verification_data["attempts"] += 1
 
         if verification_data["code"] != verification_code:
+            remaining = verification_data["max_attempts"] - verification_data["attempts"]
+            logger.warning(
+                "Code mismatch — provided=%s, expected=%s, remaining_attempts=%s",
+                verification_code,
+                verification_data["code"],
+                remaining,
+            )
             await self.redis.set(
                 f"verification_code:{user_id}", verification_data, expire=3600
             )
-            remaining = verification_data["max_attempts"] - verification_data["attempts"]
             return False, f"Invalid verification code. {remaining} attempts remaining"
 
+        logger.info("Code matches, verifying user in DB — user_id=%s", user_id)
         user = await self.user_repo.verify_user(user_id)
         if not user:
+            logger.error("verify_user returned None — user_id=%s not found in DB", user_id)
             return False, "User not found"
 
         await self.redis.delete(f"verification_code:{user_id}")
+        logger.info("User verified successfully — user_id=%s, email=%s", user_id, user.email)
 
         await self._send_welcome_email(user.email)
 
@@ -153,22 +178,30 @@ class AuthService:
     async def resend_verification_code(
         self, user_id: int
     ) -> Tuple[bool, Optional[str], Optional[str]]:
+        logger.info("resend_verification_code called — user_id=%s", user_id)
+
         user = await self.user_repo.get_by_id(user_id)
         if not user:
+            logger.warning("resend_verification_code — user_id=%s not found", user_id)
             return False, None, "User not found"
 
         if user.is_verified:
+            logger.info("resend_verification_code — user_id=%s already verified", user_id)
             return False, None, "Email already verified"
 
         existing = await self.redis.get(f"verification_code:{user_id}")
         if existing:
             created_at = datetime.fromisoformat(existing["created_at"])
             elapsed = datetime.now(timezone.utc) - created_at.replace(tzinfo=timezone.utc)
+            logger.info("Existing code found — created_at=%s, elapsed=%s", created_at.isoformat(), elapsed)
             if elapsed < timedelta(minutes=1):
+                logger.info("Rate limited — must wait before requesting new code")
                 return False, None, "Please wait before requesting a new code"
 
         code = await self._generate_verification_code(user_id, user.email)
-        await self._send_verification_email(user_id, user.email, code)
+        logger.info("New verification code generated — user_id=%s", user_id)
+        sent = await self._send_verification_email(user_id, user.email, code)
+        logger.info("Verification email send result — user_id=%s, sent=%s", user_id, sent)
         return True, code, None
 
     # ── PASSWORD CHANGE ─────────────────────────────────────────────────
@@ -224,28 +257,38 @@ class AuthService:
     async def _generate_verification_code(self, user_id: int, email: str) -> str:
         code = self._generate_random_code()
         now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(minutes=60)
+        logger.info(
+            "_generate_verification_code — user_id=%s, email=%s, code=%s, expires_at=%s",
+            user_id, email, code, expires_at.isoformat(),
+        )
         await self.redis.set(
             f"verification_code:{user_id}",
             {
                 "code": code,
                 "email": email,
                 "created_at": now.isoformat(),
-                "expires_at": (now + timedelta(minutes=60)).isoformat(),
+                "expires_at": expires_at.isoformat(),
                 "attempts": 0,
                 "max_attempts": 5,
             },
             expire=3600,
         )
+        # Verify data was stored correctly
+        stored = await self.redis.get(f"verification_code:{user_id}")
+        logger.info("_generate_verification_code — Redis write verified: %s", stored is not None)
         return code
 
     async def _send_verification_email(
         self, user_id: int, email: str, code: str
     ) -> bool:
+        logger.info("_send_verification_email — user_id=%s, email=%s", user_id, email)
         try:
-            await email_service.send_verification_email(email, code, user_id)
-            return True
+            result = await email_service.send_verification_email(email, code, user_id)
+            logger.info("_send_verification_email result — user_id=%s, success=%s", user_id, result)
+            return result
         except Exception as e:
-            logger.error("Failed to send verification email: %s", e)
+            logger.error("Failed to send verification email — user_id=%s, error=%s, type=%s", user_id, e, type(e).__name__)
             return False
 
     async def _send_welcome_email(self, email: str) -> bool:
