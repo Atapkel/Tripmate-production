@@ -102,7 +102,8 @@ export default function EditTripPage() {
             valueLow={watch("min_budget") || 0}
             valueHigh={watch("max_budget") || 10000000}
             onChange={(low, high) => { setValue("min_budget", low); setValue("max_budget", high); }}
-            formatValue={(v) => `${v.toLocaleString()} KZT`}
+            formatValue={(v) => `${v.toLocaleString()} ₸`}
+            inputSuffix="KZT"
             error={errors.max_budget?.message}
           />
           <Input id="people_needed" label="People Needed" type="number" min={1} error={errors.people_needed?.message} {...register("people_needed", { valueAsNumber: true })} />
@@ -115,6 +116,7 @@ export default function EditTripPage() {
             valueHigh={watch("max_age") || 100}
             onChange={(low, high) => { setValue("min_age", low); setValue("max_age", high); }}
             formatValue={(v) => `${v} yrs`}
+            inputSuffix="yrs"
           />
           <Select id="gender_preference" label="Gender Preference" options={[{ value: "any", label: "Any" }, { value: "male", label: "Male" }, { value: "female", label: "Female" }]} {...register("gender_preference")} />
           <Textarea id="description" label="Description" rows={4} showCount maxLength={2000} currentLength={description.length} error={errors.description?.message} {...register("description")} />

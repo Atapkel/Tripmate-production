@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { DayPicker, type DateRange } from "react-day-picker";
 import { format } from "date-fns";
+import { Calendar } from "lucide-react";
 import { clsx } from "clsx";
 import "react-day-picker/style.css";
 
@@ -35,7 +36,6 @@ export function DateRangePicker({
 
   const handleOpen = () => {
     if (!open) {
-      // Initialize local range from props when opening
       setLocalRange(
         startDate || endDate
           ? {
@@ -50,7 +50,6 @@ export function DateRangePicker({
 
   const handleSelect = (range: DateRange | undefined) => {
     setLocalRange(range);
-    // Only commit to form and close when both dates are selected
     if (range?.from && range?.to) {
       onRangeChange(format(range.from, "yyyy-MM-dd"), format(range.to, "yyyy-MM-dd"));
       setOpen(false);
@@ -67,12 +66,8 @@ export function DateRangePicker({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const displayValue =
-    startDate && endDate
-      ? `${format(new Date(startDate + "T00:00:00"), "MMM d, yyyy")} — ${format(new Date(endDate + "T00:00:00"), "MMM d, yyyy")}`
-      : startDate
-        ? `${format(new Date(startDate + "T00:00:00"), "MMM d, yyyy")} — ...`
-        : "Select dates";
+  const hasStart = !!startDate;
+  const hasEnd = !!endDate;
 
   return (
     <div ref={ref} className="relative space-y-1.5">
@@ -81,21 +76,50 @@ export function DateRangePicker({
           {label}
         </label>
       )}
+
       <button
         type="button"
         onClick={handleOpen}
         className={clsx(
           "w-full rounded-xl border bg-surface px-4 py-2.5 text-sm text-left transition-colors",
           "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500",
-          error ? "border-error" : "border-border",
-          startDate ? "text-text-primary" : "text-text-tertiary"
+          "flex items-center gap-3",
+          error ? "border-error" : "border-border"
         )}
       >
-        {displayValue}
+        <Calendar className="w-4 h-4 text-text-tertiary shrink-0" />
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className={clsx(
+            "truncate",
+            hasStart ? "text-text-primary" : "text-text-tertiary"
+          )}>
+            {hasStart
+              ? format(new Date(startDate + "T00:00:00"), "MMM d, yyyy")
+              : "Start date"}
+          </span>
+          <span className="text-text-tertiary">→</span>
+          <span className={clsx(
+            "truncate",
+            hasEnd ? "text-text-primary" : "text-text-tertiary"
+          )}>
+            {hasEnd
+              ? format(new Date(endDate + "T00:00:00"), "MMM d, yyyy")
+              : "End date"}
+          </span>
+        </div>
       </button>
+
       {error && <p className="text-sm text-error">{error}</p>}
+
       {open && (
-        <div className="absolute z-50 mt-1 rounded-xl border border-border bg-surface shadow-elevated p-3">
+        <div className="absolute z-50 mt-1 rounded-xl border border-border bg-surface shadow-elevated p-4">
+          <p className="text-xs text-text-tertiary mb-2">
+            {!localRange?.from
+              ? "Select start date"
+              : !localRange?.to
+                ? "Now select end date"
+                : "Date range selected"}
+          </p>
           <DayPicker
             mode="range"
             selected={selected}

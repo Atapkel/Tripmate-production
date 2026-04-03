@@ -86,7 +86,8 @@ export default function CreateTripPage() {
             valueLow={watch("min_budget") || 0}
             valueHigh={watch("max_budget") || 10000000}
             onChange={(low, high) => { setValue("min_budget", low); setValue("max_budget", high); }}
-            formatValue={(v) => `${v.toLocaleString()} KZT`}
+            formatValue={(v) => `${v.toLocaleString()} ₸`}
+            inputSuffix="KZT"
             error={errors.max_budget?.message}
           />
 
@@ -101,6 +102,7 @@ export default function CreateTripPage() {
             valueHigh={watch("max_age") || 100}
             onChange={(low, high) => { setValue("min_age", low); setValue("max_age", high); }}
             formatValue={(v) => `${v} yrs`}
+            inputSuffix="yrs"
           />
           <Select id="gender_preference" label="Gender Preference" options={[{ value: "any", label: "Any" }, { value: "male", label: "Male" }, { value: "female", label: "Female" }]} {...register("gender_preference")} />
 

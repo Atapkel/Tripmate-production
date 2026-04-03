@@ -3,9 +3,9 @@ import { optionsService } from "@/services/optionsService";
 import { queryKeys } from "@/lib/queryKeys";
 import { useFilterStore } from "@/stores/filterStore";
 import { Select } from "@/components/ui/Select";
-import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { RangeSlider } from "@/components/ui/RangeSlider";
+import { DateRangePicker } from "@/components/ui/DateRangePicker";
 
 export function TripFilters({ onApply }: { onApply?: () => void }) {
   const { filters, setFilters, resetFilters } = useFilterStore();
@@ -28,10 +28,14 @@ export function TripFilters({ onApply }: { onApply?: () => void }) {
         onChange={(e) => setFilters({ destination_country: e.target.value || undefined })}
       />
 
-      <div className="space-y-3">
-        <Input id="start_from" label="From date" type="date" value={filters.start_date_from || ""} onChange={(e) => setFilters({ start_date_from: e.target.value || undefined })} />
-        <Input id="start_to" label="To date" type="date" value={filters.start_date_to || ""} onChange={(e) => setFilters({ start_date_to: e.target.value || undefined })} />
-      </div>
+      <DateRangePicker
+        label="Trip Start Date"
+        startDate={filters.start_date_from}
+        endDate={filters.start_date_to}
+        onRangeChange={(start, end) =>
+          setFilters({ start_date_from: start, start_date_to: end })
+        }
+      />
 
       <RangeSlider
         label="Budget Range"
@@ -41,7 +45,8 @@ export function TripFilters({ onApply }: { onApply?: () => void }) {
         valueLow={filters.min_budget ?? 0}
         valueHigh={filters.max_budget ?? 10000000}
         onChange={(low, high) => setFilters({ min_budget: low > 0 ? low : undefined, max_budget: high < 10000000 ? high : undefined })}
-        formatValue={(v) => `${v.toLocaleString()} KZT`}
+        formatValue={(v) => `${v.toLocaleString()} ₸`}
+        inputSuffix="KZT"
       />
 
       <RangeSlider
@@ -53,6 +58,7 @@ export function TripFilters({ onApply }: { onApply?: () => void }) {
         valueHigh={filters.max_age ?? 100}
         onChange={(low, high) => setFilters({ min_age: low > 16 ? low : undefined, max_age: high < 100 ? high : undefined })}
         formatValue={(v) => `${v} yrs`}
+        inputSuffix="yrs"
       />
 
       <Select
