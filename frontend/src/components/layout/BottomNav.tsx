@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Compass, Map, MessageCircle, Send, Sparkles } from "lucide-react";
+import { Compass, Map, MessageCircle, Send, Settings, Sparkles } from "lucide-react";
 import { clsx } from "clsx";
 import { ROUTES } from "@/lib/constants";
 
@@ -9,6 +9,7 @@ const navItems = [
   { to: ROUTES.RECOMMENDATIONS, icon: Sparkles, label: "Recs" },
   { to: ROUTES.CHATS, icon: MessageCircle, label: "Messages" },
   { to: ROUTES.OFFERS, icon: Send, label: "Offers" },
+  { to: ROUTES.SETTINGS, icon: Settings, label: "Settings" },
 ];
 
 export function BottomNav({ className }: { className?: string }) {

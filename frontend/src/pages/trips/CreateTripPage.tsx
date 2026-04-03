@@ -15,7 +15,6 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
-import { RangeSlider } from "@/components/ui/RangeSlider";
 import { ROUTES } from "@/lib/constants";
 
 export default function CreateTripPage() {
@@ -77,33 +76,18 @@ export default function CreateTripPage() {
             />
           )} />
 
-          <h3 className="text-sm font-semibold text-text-primary pt-2">Budget</h3>
-          <RangeSlider
-            label="Budget Range"
-            min={0}
-            max={10000000}
-            step={100}
-            valueLow={watch("min_budget") || 0}
-            valueHigh={watch("max_budget") || 10000000}
-            onChange={(low, high) => { setValue("min_budget", low); setValue("max_budget", high); }}
-            formatValue={(v) => `${v.toLocaleString()} ₸`}
-            inputSuffix="KZT"
-            error={errors.max_budget?.message}
-          />
+          <h3 className="text-sm font-semibold text-text-primary pt-2">Budget (KZT)</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <Input id="min_budget" label="Min Budget" type="number" min={0} error={errors.min_budget?.message} {...register("min_budget", { valueAsNumber: true })} />
+            <Input id="max_budget" label="Max Budget" type="number" min={0} error={errors.max_budget?.message} {...register("max_budget", { valueAsNumber: true })} />
+          </div>
 
           <h3 className="text-sm font-semibold text-text-primary pt-2">Companion Preferences</h3>
           <Input id="people_needed" label="People Needed" type="number" min={1} {...register("people_needed", { valueAsNumber: true })} />
-          <RangeSlider
-            label="Age Range"
-            min={16}
-            max={100}
-            step={1}
-            valueLow={watch("min_age") || 16}
-            valueHigh={watch("max_age") || 100}
-            onChange={(low, high) => { setValue("min_age", low); setValue("max_age", high); }}
-            formatValue={(v) => `${v} yrs`}
-            inputSuffix="yrs"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Input id="min_age" label="Min Age" type="number" min={16} max={100} error={errors.min_age?.message} {...register("min_age", { valueAsNumber: true })} />
+            <Input id="max_age" label="Max Age" type="number" min={16} max={100} error={errors.max_age?.message} {...register("max_age", { valueAsNumber: true })} />
+          </div>
           <Select id="gender_preference" label="Gender Preference" options={[{ value: "any", label: "Any" }, { value: "male", label: "Male" }, { value: "female", label: "Female" }]} {...register("gender_preference")} />
 
           <Textarea id="description" label="Description" placeholder="Describe your trip plans, vibe, and what you're looking for..." rows={4} showCount maxLength={2000} currentLength={description.length} error={errors.description?.message} {...register("description")} />

@@ -85,9 +85,10 @@ class AuthService:
         reset_link = f"{config.FRONTEND_URL_RESET}/reset-password?token={reset_token}"
 
         try:
-            await email_service.send_password_reset_email(email, reset_link)
+            result = await email_service.send_password_reset_email(email, reset_link)
+            logger.info("Password reset email result — email=%s, sent=%s", email, result)
         except Exception as e:
-            logger.error("Failed to send password reset email: %s", e)
+            logger.error("Failed to send password reset email — email=%s, error=%s, type=%s", email, e, type(e).__name__)
 
         return True, reset_token, None
 
@@ -292,11 +293,13 @@ class AuthService:
             return False
 
     async def _send_welcome_email(self, email: str) -> bool:
+        logger.info("_send_welcome_email — email=%s", email)
         try:
-            await email_service.send_welcome_email(email)
-            return True
+            result = await email_service.send_welcome_email(email)
+            logger.info("_send_welcome_email result — email=%s, sent=%s", email, result)
+            return result
         except Exception as e:
-            logger.error("Failed to send welcome email: %s", e)
+            logger.error("Failed to send welcome email — email=%s, error=%s, type=%s", email, e, type(e).__name__)
             return False
 
     @staticmethod

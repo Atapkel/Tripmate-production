@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from typing import Literal, Optional
 
 import requests
@@ -19,6 +20,18 @@ class EmailService:
         self.app_name = config.APPLICATION_NAME
         self.base_url = f"https://api.mailgun.net/v3/{self.domain}/messages"
 
+        # Log configuration status at startup
+        if not self.api_key:
+            logger.error("MAILGUN_API_KEY is not configured!")
+        if not self.domain:
+            logger.error("MAILGUN_DOMAIN is not configured!")
+        if not self.from_email:
+            logger.error("MAIL_FROM is not configured!")
+        logger.info(
+            "EmailService initialized — domain=%s, from=%s, api_key_set=%s",
+            self.domain, self.from_email, bool(self.api_key),
+        )
+
     # ── TRANSPORT ───────────────────────────────────────────────────────
 
     async def send_email(
@@ -28,9 +41,19 @@ class EmailService:
         html_content: str,
         plain_content: Optional[str] = None,
     ) -> bool:
-        try:
-            logger.info("Sending email to %s via Mailgun", to_email)
+        logger.info(
+            "send_email START — to=%s, subject='%s', has_plain=%s",
+            to_email, subject, plain_content is not None,
+        )
 
+        if not self.api_key or not self.domain:
+            logger.error(
+                "send_email ABORTED — missing config: api_key_set=%s, domain=%s",
+                bool(self.api_key), self.domain,
+            )
+            return False
+
+        try:
             data = {
                 "from": self.from_email,
                 "to": [to_email],
@@ -40,19 +63,48 @@ class EmailService:
             if plain_content:
                 data["text"] = plain_content
 
+            start = time.monotonic()
             response = await asyncio.to_thread(
                 requests.post,
                 self.base_url,
                 auth=("api", self.api_key),
                 data=data,
             )
+            elapsed_ms = (time.monotonic() - start) * 1000
+
+            logger.info(
+                "send_email RESPONSE — to=%s, status_code=%s, elapsed=%.0fms, body=%s",
+                to_email, response.status_code, elapsed_ms, response.text,
+            )
+
             response.raise_for_status()
 
-            logger.info("Email sent successfully to %s", to_email)
+            logger.info("send_email SUCCESS — to=%s, subject='%s'", to_email, subject)
             return True
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(
+                "send_email FAILED (HTTP) — to=%s, status_code=%s, response=%s, error=%s",
+                to_email, e.response.status_code if e.response is not None else "N/A",
+                e.response.text if e.response is not None else "N/A", e,
+            )
+            return False
+        except requests.exceptions.ConnectionError as e:
+            logger.error(
+                "send_email FAILED (Connection) — to=%s, error=%s",
+                to_email, e,
+            )
+            return False
+        except requests.exceptions.Timeout as e:
+            logger.error(
+                "send_email FAILED (Timeout) — to=%s, error=%s",
+                to_email, e,
+            )
+            return False
         except Exception as e:
             logger.error(
-                "Failed to send email to %s: %s (type: %s)", to_email, e, type(e).__name__
+                "send_email FAILED (Unexpected) — to=%s, error=%s, type=%s",
+                to_email, e, type(e).__name__,
             )
             return False
 
@@ -96,14 +148,19 @@ class EmailService:
             f"This code will expire in 60 minutes."
         )
 
-        logger.info("Sending verification email to %s", to_email)
-        return await self.send_email(to_email, subject, html_content, plain_content)
+        result = await self.send_email(to_email, subject, html_content, plain_content)
+        logger.info(
+            "send_verification_email RESULT — to=%s, user_id=%s, sent=%s",
+            to_email, user_id, result,
+        )
+        return result
 
     # ── PASSWORD RESET ──────────────────────────────────────────────────
 
     async def send_password_reset_email(
         self, to_email: str, reset_link: str, language: Language = "en"
     ) -> bool:
+        logger.info("send_password_reset_email — to=%s", to_email)
         subject = f"{self.app_name} - Password Reset"
 
         html_content = f"""
@@ -138,14 +195,19 @@ class EmailService:
             f"This link will expire in 1 hour."
         )
 
-        logger.info("Sending password reset email to %s", to_email)
-        return await self.send_email(to_email, subject, html_content, plain_content)
+        result = await self.send_email(to_email, subject, html_content, plain_content)
+        logger.info(
+            "send_password_reset_email RESULT — to=%s, sent=%s",
+            to_email, result,
+        )
+        return result
 
     # ── WELCOME ─────────────────────────────────────────────────────────
 
     async def send_welcome_email(
         self, to_email: str, user_name: str = "", language: Language = "en"
     ) -> bool:
+        logger.info("send_welcome_email — to=%s, user_name='%s'", to_email, user_name)
         subject = f"Welcome to {self.app_name}!"
 
         greeting = f" {user_name}" if user_name else ""
@@ -169,8 +231,12 @@ class EmailService:
             f"Happy travels!"
         )
 
-        logger.info("Sending welcome email to %s", to_email)
-        return await self.send_email(to_email, subject, html_content, plain_content)
+        result = await self.send_email(to_email, subject, html_content, plain_content)
+        logger.info(
+            "send_welcome_email RESULT — to=%s, sent=%s",
+            to_email, result,
+        )
+        return result
 
 
 email_service = EmailService()

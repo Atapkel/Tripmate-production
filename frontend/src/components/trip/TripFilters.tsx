@@ -4,7 +4,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { useFilterStore } from "@/stores/filterStore";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
-import { RangeSlider } from "@/components/ui/RangeSlider";
+import { Input } from "@/components/ui/Input";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 
 export function TripFilters({ onApply }: { onApply?: () => void }) {
@@ -37,29 +37,21 @@ export function TripFilters({ onApply }: { onApply?: () => void }) {
         }
       />
 
-      <RangeSlider
-        label="Budget Range"
-        min={0}
-        max={10000000}
-        step={100}
-        valueLow={filters.min_budget ?? 0}
-        valueHigh={filters.max_budget ?? 10000000}
-        onChange={(low, high) => setFilters({ min_budget: low > 0 ? low : undefined, max_budget: high < 10000000 ? high : undefined })}
-        formatValue={(v) => `${v.toLocaleString()} ₸`}
-        inputSuffix="KZT"
-      />
+      <div>
+        <label className="block text-sm font-medium text-text-primary mb-1.5">Budget Range (KZT)</label>
+        <div className="grid grid-cols-2 gap-3">
+          <Input id="min_budget" placeholder="Min" type="number" min={0} value={filters.min_budget ?? ""} onChange={(e) => setFilters({ min_budget: e.target.value ? Number(e.target.value) : undefined })} />
+          <Input id="max_budget" placeholder="Max" type="number" min={0} value={filters.max_budget ?? ""} onChange={(e) => setFilters({ max_budget: e.target.value ? Number(e.target.value) : undefined })} />
+        </div>
+      </div>
 
-      <RangeSlider
-        label="Age Range"
-        min={16}
-        max={100}
-        step={1}
-        valueLow={filters.min_age ?? 16}
-        valueHigh={filters.max_age ?? 100}
-        onChange={(low, high) => setFilters({ min_age: low > 16 ? low : undefined, max_age: high < 100 ? high : undefined })}
-        formatValue={(v) => `${v} yrs`}
-        inputSuffix="yrs"
-      />
+      <div>
+        <label className="block text-sm font-medium text-text-primary mb-1.5">Age Range</label>
+        <div className="grid grid-cols-2 gap-3">
+          <Input id="min_age" placeholder="Min" type="number" min={16} max={100} value={filters.min_age ?? ""} onChange={(e) => setFilters({ min_age: e.target.value ? Number(e.target.value) : undefined })} />
+          <Input id="max_age" placeholder="Max" type="number" min={16} max={100} value={filters.max_age ?? ""} onChange={(e) => setFilters({ max_age: e.target.value ? Number(e.target.value) : undefined })} />
+        </div>
+      </div>
 
       <Select
         id="gender_pref"
