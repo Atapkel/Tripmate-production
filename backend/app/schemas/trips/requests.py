@@ -12,7 +12,7 @@ class TripVacancyCreateRequest(BaseModel):
     end_date: date
     min_budget: Optional[Decimal] = Field(None, ge=0)
     max_budget: Optional[Decimal] = Field(None, ge=0)
-    people_needed: int = Field(..., ge=1)
+    people_needed: int = Field(..., ge=1, le=20)
     description: Optional[str] = None
     min_age: Optional[int] = Field(None, ge=0, le=120)
     max_age: Optional[int] = Field(None, ge=0, le=120)
@@ -26,7 +26,7 @@ class TripVacancyUpdateRequest(BaseModel):
     end_date: Optional[date] = None
     min_budget: Optional[Decimal] = Field(None, ge=0)
     max_budget: Optional[Decimal] = Field(None, ge=0)
-    people_needed: Optional[int] = Field(None, ge=1)
+    people_needed: Optional[int] = Field(None, ge=1, le=20)
     description: Optional[str] = None
     min_age: Optional[int] = Field(None, ge=0, le=120)
     max_age: Optional[int] = Field(None, ge=0, le=120)

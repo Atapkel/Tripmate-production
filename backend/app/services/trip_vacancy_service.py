@@ -38,10 +38,16 @@ class TripVacancyService:
 
     # ── CREATE ──────────────────────────────────────────────────────────
 
+    MAX_ACTIVE_TRIPS = 5
+
     async def create_trip_vacancy(
         self, requester_id: int, **data
     ) -> Tuple[bool, Optional[TripVacancy], Optional[str]]:
         try:
+            active_count = await self.trip_vacancy_repo.count_active_by_requester(requester_id)
+            if active_count >= self.MAX_ACTIVE_TRIPS:
+                return False, None, f"You can have at most {self.MAX_ACTIVE_TRIPS} active trips at a time"
+
             error = await self._validate_city_country(
                 data["destination_city_id"], data["destination_country_id"]
             )

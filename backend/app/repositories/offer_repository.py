@@ -12,6 +12,14 @@ class OfferRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def count_active_by_offerer(self, offerer_id: int) -> int:
+        query = select(func.count()).select_from(Offer).filter(
+            Offer.offerer_id == offerer_id,
+            Offer.status == "pending",
+        )
+        result = await self.db.execute(query)
+        return result.scalar_one()
+
     # ── CREATE ──────────────────────────────────────────────────────────
 
     async def create(self, offerer_id: int, **kwargs) -> Offer:

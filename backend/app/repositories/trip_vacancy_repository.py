@@ -15,6 +15,14 @@ class TripVacancyRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def count_active_by_requester(self, requester_id: int) -> int:
+        query = select(func.count()).select_from(TripVacancy).filter(
+            TripVacancy.requester_id == requester_id,
+            TripVacancy.status == "open",
+        )
+        result = await self.db.execute(query)
+        return result.scalar_one()
+
     # ── CREATE ──────────────────────────────────────────────────────────
 
     async def create(self, requester_id: int, **kwargs) -> TripVacancy:

@@ -25,10 +25,16 @@ class OfferService:
 
     # ── CREATE ──────────────────────────────────────────────────────────
 
+    MAX_ACTIVE_OFFERS = 10
+
     async def create_offer(
         self, offerer_id: int, **offer_data
     ) -> Tuple[bool, Optional[Offer], Optional[str]]:
         try:
+            active_count = await self.offer_repo.count_active_by_offerer(offerer_id)
+            if active_count >= self.MAX_ACTIVE_OFFERS:
+                return False, None, f"You can have at most {self.MAX_ACTIVE_OFFERS} pending offers at a time"
+
             trip_vacancy_id = offer_data.get("trip_vacancy_id")
 
             trip_vacancy = await self.trip_vacancy_repo.get_by_id(trip_vacancy_id)
