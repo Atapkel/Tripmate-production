@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Users } from "lucide-react";
@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { queryKeys } from "@/lib/queryKeys";
 import { MessageBubble } from "@/components/chat/MessageBubble";
+import { MembersModal } from "@/components/chat/MembersModal";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { Spinner } from "@/components/ui/Spinner";
@@ -23,6 +24,7 @@ export default function ChatRoomPage() {
   const { messagesByChat, typingUsers, setMessages, setActiveChat } = useChatStore();
   const { sendMessage, sendTyping, isConnected } = useWebSocket(chatId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showMembers, setShowMembers] = useState(false);
 
   const { data: chat } = useQuery({
     queryKey: queryKeys.chats.detail(chatId),
@@ -105,7 +107,12 @@ export default function ChatRoomPage() {
           <h2 className="text-sm font-semibold text-text-primary">{chat?.name || "Chat"}</h2>
           {!isConnected && <p className="text-xs text-warning">Reconnecting...</p>}
         </div>
-        <button className="p-1 rounded-lg hover:bg-surface-tertiary">
+        <button
+          type="button"
+          onClick={() => setShowMembers(true)}
+          className="p-1 rounded-lg hover:bg-surface-tertiary"
+          aria-label="View members"
+        >
           <Users className="h-5 w-5 text-text-secondary" />
         </button>
       </div>
@@ -152,6 +159,9 @@ export default function ChatRoomPage() {
 
       {/* Input */}
       <ChatInput onSend={handleSend} onTyping={sendTyping} disabled={messagingFrozen} />
+
+      {/* Members modal */}
+      <MembersModal chatId={chatId} isOpen={showMembers} onClose={() => setShowMembers(false)} />
     </div>
   );
 }

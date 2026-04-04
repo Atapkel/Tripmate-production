@@ -1,13 +1,20 @@
 import { clsx } from "clsx";
 import { formatMessageTime } from "@/lib/formatters";
+import { Avatar } from "@/components/ui/Avatar";
 import type { ChatMessage } from "@/types/chat";
 
 interface MessageBubbleProps {
   message: ChatMessage;
   isOwn: boolean;
+  showAvatar?: boolean;
 }
 
-export function MessageBubble({ message, isOwn }: MessageBubbleProps) {
+function resolvePhoto(photo?: string | null): string | null {
+  if (!photo) return null;
+  return photo.startsWith("http") ? photo : `/${photo}`;
+}
+
+export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubbleProps) {
   const isSystem = message.sender_id == null;
 
   if (isSystem) {
@@ -23,7 +30,14 @@ export function MessageBubble({ message, isOwn }: MessageBubbleProps) {
   }
 
   return (
-    <div className={clsx("flex mb-2", isOwn ? "justify-end" : "justify-start")}>
+    <div className={clsx("flex mb-2 items-end gap-2", isOwn ? "justify-end" : "justify-start")}>
+      {!isOwn && showAvatar && (
+        <Avatar
+          src={resolvePhoto(message.sender_photo)}
+          initials={message.sender_name?.charAt(0)?.toUpperCase()}
+          size="sm"
+        />
+      )}
       <div
         className={clsx(
           "max-w-[75%] rounded-2xl px-4 py-2",

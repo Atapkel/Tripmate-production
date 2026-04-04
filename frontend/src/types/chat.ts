@@ -17,6 +17,8 @@ export interface ChatMember {
   chat_group_id: number;
   user_id: number;
   joined_at: string;
+  user_name?: string;
+  profile_photo?: string | null;
 }
 
 export interface ChatMessage {
@@ -25,6 +27,7 @@ export interface ChatMessage {
   /** Absent for TripMate system messages */
   sender_id?: number | null;
   sender_name?: string;
+  sender_photo?: string | null;
   content: string;
   created_at: string;
 }
