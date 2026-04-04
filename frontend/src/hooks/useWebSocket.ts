@@ -9,20 +9,30 @@ const MAX_RECONNECT = 5;
 
 export function useWebSocket(chatId: number | string | null) {
   const { accessToken } = useAuthStore();
-  const { addMessage, setTyping } = useChatStore();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (!chatId || !accessToken) return;
+    if (!chatId || accessToken == null) return;
+    const token = accessToken;
+
+    let cancelled = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    let connectTimer: ReturnType<typeof setTimeout> | undefined;
 
     function connect() {
+      if (cancelled) return;
+
       const ws = new WebSocket(
-        `${WS_BASE}/chats/ws/${chatId}?token=${accessToken}`
+        `${WS_BASE}/chats/ws/${chatId}?token=${encodeURIComponent(token)}`
       );
 
       ws.onopen = () => {
+        if (cancelled) {
+          ws.close();
+          return;
+        }
         reconnectAttempts.current = 0;
         setIsConnected(true);
       };
@@ -30,6 +40,7 @@ export function useWebSocket(chatId: number | string | null) {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          const { addMessage, setTyping } = useChatStore.getState();
           switch (data.type) {
             case "message": {
               const msg: ChatMessage = {
@@ -54,9 +65,10 @@ export function useWebSocket(chatId: number | string | null) {
 
       ws.onclose = () => {
         setIsConnected(false);
+        if (cancelled) return;
         if (reconnectAttempts.current < MAX_RECONNECT) {
           const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 30000);
-          setTimeout(() => {
+          reconnectTimer = setTimeout(() => {
             reconnectAttempts.current++;
             connect();
           }, delay);
@@ -64,19 +76,27 @@ export function useWebSocket(chatId: number | string | null) {
       };
 
       ws.onerror = () => {
-        ws.close();
+        // Let the socket transition to onclose; avoid close() here (noisy in dev, redundant).
       };
 
       wsRef.current = ws;
     }
 
-    connect();
+    // React 18 Strict Mode runs mount → cleanup → mount in dev. Defer opening the socket so the
+    // first (discarded) effect never creates a WebSocket that we immediately close while CONNECTING.
+    connectTimer = window.setTimeout(() => {
+      connectTimer = undefined;
+      connect();
+    }, 0);
 
     return () => {
+      cancelled = true;
+      if (connectTimer !== undefined) window.clearTimeout(connectTimer);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [chatId, accessToken, addMessage, setTyping]);
+  }, [chatId, accessToken]);
 
   const sendMessage = useCallback((content: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

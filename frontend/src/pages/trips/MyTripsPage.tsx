@@ -35,7 +35,13 @@ export default function MyTripsPage() {
     queryFn: () => offerService.getReceived().then((r) => r.data),
   });
 
-  const filteredTrips = trips?.filter((t) => activeTab === "all" ? true : t.status === activeTab);
+  const filteredTrips = trips?.filter((t) => {
+    if (activeTab === "all") return true;
+    if (activeTab === "cancelled") {
+      return t.status === "cancelled" || t.status === "deleted_by_host";
+    }
+    return t.status === activeTab;
+  });
   const pendingOffers = receivedOffers?.filter((o) => o.status === "pending") || [];
 
   return (

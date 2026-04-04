@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -14,7 +14,9 @@ class MessageRepository:
 
     # ── CREATE ──────────────────────────────────────────────────────────
 
-    async def create(self, chat_group_id: int, sender_id: int, content: str) -> Message:
+    async def create(
+        self, chat_group_id: int, sender_id: Optional[int], content: str
+    ) -> Message:
         message = Message(
             chat_group_id=chat_group_id, sender_id=sender_id, content=content
         )
@@ -29,6 +31,35 @@ class MessageRepository:
         query = select(Message).filter(Message.id == message_id)
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
+
+    async def get_max_message_id(self, chat_group_id: int) -> Optional[int]:
+        query = select(func.max(Message.id)).where(Message.chat_group_id == chat_group_id)
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
+
+    async def count_unread_for_member(
+        self,
+        chat_group_id: int,
+        user_id: int,
+        last_read_message_id: Optional[int],
+    ) -> int:
+        threshold = last_read_message_id or 0
+        query = (
+            select(func.count())
+            .select_from(Message)
+            .where(
+                and_(
+                    Message.chat_group_id == chat_group_id,
+                    or_(
+                        Message.sender_id.is_(None),
+                        Message.sender_id != user_id,
+                    ),
+                    Message.id > threshold,
+                )
+            )
+        )
+        result = await self.db.execute(query)
+        return int(result.scalar_one() or 0)
 
     async def get_messages_by_chat_group(
         self, chat_group_id: int, skip: int = 0, limit: int = 100

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -13,11 +13,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ROUTES } from "@/lib/constants";
-
-const tabs = [
-  { key: "sent", label: "Sent" },
-  { key: "received", label: "Received" },
-];
+import { countPendingOffers } from "@/lib/offersCounts";
 
 export default function MyOffersPage() {
   const navigate = useNavigate();
@@ -34,10 +30,21 @@ export default function MyOffersPage() {
     queryFn: () => offerService.getReceived().then((r) => r.data),
   });
 
+  const tabs = useMemo(() => {
+    const sentPending = countPendingOffers(sentOffers);
+    const receivedPending = countPendingOffers(receivedOffers);
+    return [
+      { key: "sent", label: "Sent", count: sentPending > 0 ? sentPending : undefined },
+      { key: "received", label: "Received", count: receivedPending > 0 ? receivedPending : undefined },
+    ];
+  }, [sentOffers, receivedOffers]);
+
   const cancelMutation = useMutation({
     mutationFn: (id: number) => offerService.cancel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.mine });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.received });
+      queryClient.invalidateQueries({ queryKey: ["offers", "trip"] });
       toast.success("Offer cancelled.");
     },
     onError: (err) => toast.error(getErrorMessage(err)),

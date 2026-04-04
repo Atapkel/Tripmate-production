@@ -3,6 +3,9 @@ import { Compass, Map, MessageCircle, Send, User, Settings, MapPin, Sparkles } f
 import { clsx } from "clsx";
 import { ROUTES } from "@/lib/constants";
 import { isMainNavItemActive, isNavItemActive, normalizePathname } from "@/lib/navActive";
+import { usePendingReceivedOffersCount } from "@/hooks/usePendingReceivedOffersCount";
+import { useChatsUnreadTotal } from "@/hooks/useChatsUnreadTotal";
+import { NavCountBadge } from "@/components/ui/NavCountBadge";
 
 type NavItem =
   | { to: string; icon: typeof Compass; label: string; end: boolean }
@@ -34,6 +37,8 @@ const navItems: NavItem[] = [
 export function Sidebar({ className }: { className?: string }) {
   const { pathname } = useLocation();
   const settingsActive = isNavItemActive(pathname, ROUTES.SETTINGS, false);
+  const { data: pendingReceived = 0 } = usePendingReceivedOffersCount();
+  const { data: chatsUnread = 0 } = useChatsUnreadTotal();
 
   return (
     <aside
@@ -55,11 +60,20 @@ export function Sidebar({ className }: { className?: string }) {
               "isActive" in item
                 ? item.isActive(pathname)
                 : isMainNavItemActive(pathname, item.to, item.end);
+            const offersBadge = item.to === ROUTES.OFFERS ? pendingReceived : 0;
+            const messagesBadge = item.to === ROUTES.CHATS ? chatsUnread : 0;
             return (
               <Link
                 key={item.to}
                 to={item.to}
                 aria-current={isActive ? "page" : undefined}
+                aria-label={
+                  offersBadge > 0
+                    ? `${item.label}, ${offersBadge} pending`
+                    : messagesBadge > 0
+                      ? `${item.label}, ${messagesBadge} unread`
+                      : undefined
+                }
                 className={clsx(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                   isActive
@@ -67,8 +81,10 @@ export function Sidebar({ className }: { className?: string }) {
                     : "text-text-secondary hover:bg-surface-tertiary hover:text-text-primary"
                 )}
               >
-                <item.icon className="h-5 w-5" />
-                {item.label}
+                <item.icon className="h-5 w-5 shrink-0" />
+                <span className="flex-1 truncate">{item.label}</span>
+                {offersBadge > 0 && <NavCountBadge count={offersBadge} className="shrink-0" />}
+                {messagesBadge > 0 && <NavCountBadge count={messagesBadge} className="shrink-0" />}
               </Link>
             );
           })}

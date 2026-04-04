@@ -57,6 +57,16 @@ class ChatMemberRepository:
         member = await self.get_by_chat_and_user(chat_group_id, user_id)
         return member is not None
 
+    async def set_last_read_message_id(
+        self, chat_group_id: int, user_id: int, message_id: Optional[int]
+    ) -> None:
+        member = await self.get_by_chat_and_user(chat_group_id, user_id)
+        if not member:
+            return
+        member.last_read_message_id = message_id
+        await self.db.commit()
+        await self.db.refresh(member)
+
     # ── DELETE ──────────────────────────────────────────────────────────
 
     async def delete(self, chat_member: ChatMember) -> None:

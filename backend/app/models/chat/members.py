@@ -12,6 +12,9 @@ class ChatMember(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     joined_at = Column(DateTime, default=func.now(), nullable=False)
+    last_read_message_id = Column(
+        Integer, ForeignKey("messages.id", ondelete="SET NULL"), nullable=True
+    )
 
     # Relationships
     chat_group = relationship("ChatGroup", back_populates="members")

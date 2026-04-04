@@ -34,6 +34,9 @@ export default function TripOffersPage() {
       offerService.updateStatus(offerId, { status }),
     onSuccess: (_, { status }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.forTrip(id!) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.received });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.mine });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chats.mine });
       toast.success(status === "accepted" ? "Offer accepted! Chat created." : "Offer rejected.");
       setConfirmAction(null);
     },

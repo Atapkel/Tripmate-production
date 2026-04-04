@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.trips import Offer
 from app.repositories.chat_group_repository import ChatGroupRepository
 from app.repositories.chat_member_repository import ChatMemberRepository
+from app.repositories.message_repository import MessageRepository
 from app.repositories.offer_repository import OfferRepository
 from app.repositories.trip_vacancy_repository import TripVacancyRepository
 
@@ -17,6 +18,7 @@ class OfferService:
         self.trip_vacancy_repo = TripVacancyRepository(db)
         self.chat_group_repo = ChatGroupRepository(db)
         self.chat_member_repo = ChatMemberRepository(db)
+        self.message_repo = MessageRepository(db)
 
     # ── CREATE ──────────────────────────────────────────────────────────
 
@@ -169,6 +171,12 @@ class OfferService:
                     )
                     if not is_member:
                         await self.chat_member_repo.create(chat_group.id, offer.offerer_id)
+                        max_msg_id = await self.message_repo.get_max_message_id(
+                            chat_group.id
+                        )
+                        await self.chat_member_repo.set_last_read_message_id(
+                            chat_group.id, offer.offerer_id, max_msg_id
+                        )
 
             updated_offer = await self.offer_repo.update_status(
                 offer, new_status, reviewed_at=datetime.now(timezone.utc)

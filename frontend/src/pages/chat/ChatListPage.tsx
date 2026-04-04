@@ -2,7 +2,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MessageCircle } from "lucide-react";
 import { chatService } from "@/services/chatService";
-import { useChatStore } from "@/stores/chatStore";
 import { queryKeys } from "@/lib/queryKeys";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -15,8 +14,6 @@ export default function ChatListPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isDesktop = useIsDesktop();
-  const { unreadCounts } = useChatStore();
-
   const { data: chats, isLoading } = useQuery({
     queryKey: queryKeys.chats.mine,
     queryFn: () => chatService.getMine().then((r) => r.data),
@@ -54,7 +51,7 @@ export default function ChatListPage() {
               chat={chat}
               isActive={id ? Number(id) === chat.id : false}
               onClick={() => navigate(ROUTES.CHAT_ROOM(chat.id))}
-              unreadCount={unreadCounts[chat.id] || 0}
+              unreadCount={chat.unread_count ?? 0}
             />
           ))}
         </div>
