@@ -25,11 +25,15 @@ class TripVacancyResponse(BaseModel):
     male_joined: int = 0
     female_joined: int = 0
     description: Optional[str] = None
+    destination_description: Optional[str] = None
+    destination_photo_url: Optional[str] = None
+    destination_wiki_url: Optional[str] = None
     min_age: Optional[int] = None
     max_age: Optional[int] = None
     nationality_preference_id: Optional[int] = None
     nationality_preference: Optional[NationalityResponse] = None
     status: str
+
     created_at: datetime
     updated_at: datetime
 
