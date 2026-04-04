@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { ROUTES } from "@/lib/constants";
 import {
   MapPin,
@@ -76,9 +77,47 @@ const destinations = [
   { city: "Paris", country: "France", emoji: "🇫🇷" },
 ];
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "TripMate",
+  description:
+    "Find your perfect travel companion. Connect with like-minded travelers, plan trips together with AI, and create unforgettable memories.",
+  applicationCategory: "TravelApplication",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+};
+
 export default function LandingPage() {
   return (
     <div className="min-h-dvh bg-surface font-body">
+      <Helmet>
+        <title>TripMate — Find Your Travel Companion</title>
+        <meta
+          name="description"
+          content="Don't travel alone. Connect with like-minded travelers, plan trips together with AI, and create unforgettable memories. Browse 230+ cities across 60+ countries."
+        />
+        <meta
+          name="keywords"
+          content="travel companion, travel buddy, find travel partner, trip planning, AI travel planner, group travel, solo travel"
+        />
+        <link rel="canonical" href="https://tripmate.com" />
+        <meta property="og:type" content="website" />
+        <meta
+          property="og:title"
+          content="TripMate — Find Your Travel Companion"
+        />
+        <meta
+          property="og:description"
+          content="Don't travel alone. Connect with like-minded travelers, plan trips together with AI, and create unforgettable memories."
+        />
+        <meta property="og:url" content="https://tripmate.com" />
+        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+      </Helmet>
+
       {/* Navigation */}
       <nav className="fixed top-0 inset-x-0 z-50 glass border-b border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

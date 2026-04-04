@@ -1,6 +1,6 @@
 import api from "./api";
 import axios from "axios";
-import type { AuthResponse, RegisterResponse, RegisterPayload, LoginPayload, VerifyEmailPayload, ResendVerificationPayload, ForgotPasswordPayload, ResetPasswordPayload, ChangePasswordPayload, User } from "@/types/auth";
+import type { AuthResponse, RegisterResponse, RegisterPayload, LoginPayload, VerifyEmailPayload, ResendVerificationPayload, ForgotPasswordPayload, ResetPasswordPayload, ChangePasswordPayload, GoogleAuthPayload, GoogleAuthUrlResponse, User } from "@/types/auth";
 import type { MessageResponse } from "@/types/common";
 
 export const authService = {
@@ -33,4 +33,10 @@ export const authService = {
 
   changePassword: (data: ChangePasswordPayload) =>
     api.post<MessageResponse>("/auth/change-password", data),
+
+  getGoogleAuthUrl: (redirectUri: string) =>
+    api.get<GoogleAuthUrlResponse>("/auth/google/url", { params: { redirect_uri: redirectUri } }),
+
+  googleAuth: (data: GoogleAuthPayload) =>
+    api.post<AuthResponse>("/auth/google", data),
 };

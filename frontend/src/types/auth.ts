@@ -58,3 +58,12 @@ export interface ChangePasswordPayload {
   current_password: string;
   new_password: string;
 }
+
+export interface GoogleAuthPayload {
+  code: string;
+  redirect_uri: string;
+}
+
+export interface GoogleAuthUrlResponse {
+  url: string;
+}

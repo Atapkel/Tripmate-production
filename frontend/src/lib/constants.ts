@@ -9,6 +9,7 @@ export const ROUTES = {
   VERIFY_EMAIL: "/verify-email",
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password",
+  GOOGLE_CALLBACK: "/auth/google/callback",
   TRIPS: "/trips",
   CREATE_TRIP: "/trips/new",
   MY_TRIPS: "/trips/me",

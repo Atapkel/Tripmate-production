@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { ROUTES } from "@/lib/constants";
+import { GoogleButton } from "@/components/auth/GoogleButton";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -39,6 +40,15 @@ export default function RegisterPage() {
   return (
     <Card>
       <h2 className="text-2xl font-heading font-bold text-text-primary mb-6 text-center">Create Account</h2>
+      <GoogleButton label="Sign up with Google" />
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-white px-2 text-text-tertiary">or</span>
+        </div>
+      </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Input
           id="email"

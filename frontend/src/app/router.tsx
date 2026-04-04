@@ -13,6 +13,7 @@ const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
 const VerifyEmailPage = lazy(() => import("@/pages/auth/VerifyEmailPage"));
 const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
+const GoogleCallbackPage = lazy(() => import("@/pages/auth/GoogleCallbackPage"));
 
 const CreateProfilePage = lazy(() => import("@/pages/profile/CreateProfilePage"));
 const SetPreferencesPage = lazy(() => import("@/pages/profile/SetPreferencesPage"));
@@ -78,6 +79,7 @@ export const router = createBrowserRouter([
       { path: "/verify-email", element: <SuspenseWrapper><VerifyEmailPage /></SuspenseWrapper> },
       { path: "/forgot-password", element: <SuspenseWrapper><ForgotPasswordPage /></SuspenseWrapper> },
       { path: "/reset-password", element: <SuspenseWrapper><ResetPasswordPage /></SuspenseWrapper> },
+      { path: "/auth/google/callback", element: <SuspenseWrapper><GoogleCallbackPage /></SuspenseWrapper> },
     ],
   },
 
