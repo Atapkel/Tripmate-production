@@ -104,7 +104,7 @@ export default function LandingPage() {
           name="keywords"
           content="travel companion, travel buddy, find travel partner, trip planning, AI travel planner, group travel, solo travel"
         />
-        <link rel="canonical" href="https://tripmate.com" />
+        <link rel="canonical" href="https://tripmate.live" />
         <meta property="og:type" content="website" />
         <meta
           property="og:title"
@@ -114,7 +114,8 @@ export default function LandingPage() {
           property="og:description"
           content="Don't travel alone. Connect with like-minded travelers, plan trips together with AI, and create unforgettable memories."
         />
-        <meta property="og:url" content="https://tripmate.com" />
+        <meta property="og:url" content="https://tripmate.live" />
+        <meta property="og:image" content="https://tripmate.live/og-image.png" />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 

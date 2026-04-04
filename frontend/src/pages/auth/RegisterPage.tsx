@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { registerSchema, type RegisterFormData } from "@/lib/validators";
@@ -38,8 +39,14 @@ export default function RegisterPage() {
   };
 
   return (
-    <Card>
-      <h2 className="text-2xl font-heading font-bold text-text-primary mb-6 text-center">Create Account</h2>
+    <>
+      <Helmet>
+        <title>Sign Up — TripMate</title>
+        <meta name="description" content="Create a free TripMate account to find travel buddies, browse trips across 230+ cities, and plan adventures with AI." />
+        <link rel="canonical" href="https://tripmate.live/register" />
+      </Helmet>
+      <Card>
+        <h2 className="text-2xl font-heading font-bold text-text-primary mb-6 text-center">Create Account</h2>
       <GoogleButton label="Sign up with Google" />
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
@@ -97,5 +104,6 @@ export default function RegisterPage() {
         </Link>
       </p>
     </Card>
+    </>
   );
 }

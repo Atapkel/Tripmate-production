@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { loginSchema, type LoginFormData } from "@/lib/validators";
@@ -43,8 +44,14 @@ export default function LoginPage() {
   };
 
   return (
-    <Card>
-      <h2 className="text-2xl font-heading font-bold text-text-primary mb-6 text-center">Log In</h2>
+    <>
+      <Helmet>
+        <title>Log In — TripMate</title>
+        <meta name="description" content="Log in to TripMate to find travel companions, plan trips with AI, and connect with travelers worldwide." />
+        <link rel="canonical" href="https://tripmate.live/login" />
+      </Helmet>
+      <Card>
+        <h2 className="text-2xl font-heading font-bold text-text-primary mb-6 text-center">Log In</h2>
       <GoogleButton label="Sign in with Google" />
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
@@ -98,5 +105,6 @@ export default function LoginPage() {
         </Link>
       </p>
     </Card>
+    </>
   );
 }
