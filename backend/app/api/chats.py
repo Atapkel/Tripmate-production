@@ -7,6 +7,7 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
+    Response,
     WebSocket,
     WebSocketDisconnect,
     status,
@@ -26,6 +27,11 @@ from app.services.chat_service import ChatService
 router = APIRouter(prefix="/chats", tags=["Chats"])
 
 
+def _chat_trip_status(group) -> str | None:
+    vacancy = getattr(group, "trip_vacancy", None)
+    return vacancy.status if vacancy is not None else None
+
+
 # ── Groups ─────────────────────────────────────────────────────────────
 
 @router.get("/me", response_model=List[ChatGroupResponse])
@@ -36,7 +42,56 @@ async def get_my_chat_groups(
     db: AsyncSession = Depends(get_db),
 ):
     service = ChatService(db)
-    return await service.get_my_chat_groups(current_user.id, skip, limit)
+    rows = await service.get_my_chat_groups(current_user.id, skip, limit)
+    return [
+        ChatGroupResponse(
+            id=g.id,
+            trip_vacancy_id=g.trip_vacancy_id,
+            name=g.name,
+            created_at=g.created_at,
+            updated_at=g.updated_at,
+            unread_count=n,
+            trip_status=_chat_trip_status(g),
+            trip_removal_unseen=ru,
+        )
+        for g, n, ru in rows
+    ]
+
+
+@router.post(
+    "/me/acknowledge-trip-removals",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def acknowledge_trip_removals(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = ChatService(db)
+    success, error = await service.acknowledge_deleted_trip_removals(current_user.id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error or "Failed to acknowledge",
+        )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/{chat_group_id}/read",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def mark_chat_read(
+    chat_group_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = ChatService(db)
+    success, error = await service.mark_chat_read(chat_group_id, current_user.id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{chat_group_id}", response_model=ChatGroupResponse)
@@ -50,7 +105,18 @@ async def get_chat_group(
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
-    return group
+    unread = await service.get_unread_count_for_user(chat_group_id, current_user.id)
+    removal_unseen = await service.trip_removal_unseen_for_user(group, current_user.id)
+    return ChatGroupResponse(
+        id=group.id,
+        trip_vacancy_id=group.trip_vacancy_id,
+        name=group.name,
+        created_at=group.created_at,
+        updated_at=group.updated_at,
+        unread_count=unread,
+        trip_status=_chat_trip_status(group),
+        trip_removal_unseen=removal_unseen,
+    )
 
 
 @router.get("/trip/{trip_id}", response_model=ChatGroupResponse)
@@ -66,7 +132,18 @@ async def get_chat_group_by_trip(
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
-    return group
+    unread = await service.get_unread_count_for_user(group.id, current_user.id)
+    removal_unseen = await service.trip_removal_unseen_for_user(group, current_user.id)
+    return ChatGroupResponse(
+        id=group.id,
+        trip_vacancy_id=group.trip_vacancy_id,
+        name=group.name,
+        created_at=group.created_at,
+        updated_at=group.updated_at,
+        unread_count=unread,
+        trip_status=_chat_trip_status(group),
+        trip_removal_unseen=removal_unseen,
+    )
 
 
 # ── Members ────────────────────────────────────────────────────────────

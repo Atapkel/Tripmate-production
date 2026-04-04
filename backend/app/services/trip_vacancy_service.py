@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import List, Optional, Tuple
 
 from sqlalchemy import select
@@ -9,6 +9,8 @@ from app.models.locations import City
 from app.models.trips import TripVacancy
 from app.repositories.chat_group_repository import ChatGroupRepository
 from app.repositories.chat_member_repository import ChatMemberRepository
+from app.repositories.message_repository import MessageRepository
+from app.repositories.offer_repository import OfferRepository
 from app.repositories.trip_vacancy_repository import TripVacancyRepository
 
 logger = logging.getLogger(__name__)
@@ -20,6 +22,8 @@ class TripVacancyService:
         self.trip_vacancy_repo = TripVacancyRepository(db)
         self.chat_group_repo = ChatGroupRepository(db)
         self.chat_member_repo = ChatMemberRepository(db)
+        self.message_repo = MessageRepository(db)
+        self.offer_repo = OfferRepository(db)
 
     # ── VALIDATION ──────────────────────────────────────────────────────
 
@@ -138,6 +142,8 @@ class TripVacancyService:
                 return False, None, "Trip vacancy not found"
             if trip_vacancy.requester_id != requester_id:
                 return False, None, "You don't have permission to update this trip vacancy"
+            if trip_vacancy.status == "deleted_by_host":
+                return False, None, "Cannot update a trip that was removed by the organizer"
 
             update_data = {k: v for k, v in update_data.items() if v is not None}
             if not update_data:
@@ -184,6 +190,8 @@ class TripVacancyService:
             return False, None, "Trip vacancy not found"
         if trip_vacancy.requester_id != requester_id:
             return False, None, "You don't have permission to update this trip vacancy"
+        if trip_vacancy.status == "deleted_by_host":
+            return False, None, "Cannot change status of a removed trip"
 
         valid_statuses = ("open", "matched", "closed", "cancelled")
         if status not in valid_statuses:
@@ -197,15 +205,43 @@ class TripVacancyService:
     async def delete_trip_vacancy(
         self, trip_vacancy_id: int, requester_id: int
     ) -> Tuple[bool, Optional[str]]:
+        """Soft-delete: status deleted_by_host, chat and messages kept; system TripMate notice."""
         try:
             trip_vacancy = await self.trip_vacancy_repo.get_by_id(trip_vacancy_id)
             if not trip_vacancy:
                 return False, "Trip vacancy not found"
             if trip_vacancy.requester_id != requester_id:
                 return False, "You don't have permission to delete this trip vacancy"
+            if trip_vacancy.status == "deleted_by_host":
+                return False, "Trip is already removed"
 
-            if not await self.trip_vacancy_repo.delete(trip_vacancy_id):
-                return False, "Failed to delete trip vacancy"
+            chat_group = await self.chat_group_repo.get_by_trip_vacancy_id(trip_vacancy_id)
+            if chat_group:
+                notice = (
+                    f'TripMate: The trip "{chat_group.name}" was removed by the organizer. '
+                    "This chat stays open so you can read past messages. "
+                    "New messages are disabled."
+                )
+                await self.message_repo.create(chat_group.id, None, notice)
+                # chat_groups.updated_at is TIMESTAMP WITHOUT TIME ZONE; asyncpg rejects tz-aware datetimes.
+                await self.chat_group_repo.update(
+                    chat_group,
+                    updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                )
+
+            offers = await self.offer_repo.get_by_trip_vacancy_id(trip_vacancy_id)
+            now = datetime.now(timezone.utc)
+            for offer in offers:
+                if offer.status == "pending":
+                    await self.offer_repo.update_status(
+                        offer, "cancelled", reviewed_at=now
+                    )
+
+            await self.trip_vacancy_repo.update_status(trip_vacancy_id, "deleted_by_host")
+            if chat_group:
+                await self.chat_member_repo.reset_trip_removal_seen_for_members_after_host_removal(
+                    chat_group.id, requester_id
+                )
             return True, None
         except Exception as e:
-            return False, f"Failed to delete trip vacancy: {str(e)}"
+            return False, f"Failed to remove trip vacancy: {str(e)}"

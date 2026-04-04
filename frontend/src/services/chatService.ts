@@ -29,4 +29,10 @@ export const chatService = {
 
   getActiveUsers: (chatId: number | string) =>
     api.get<number[]>(`/chats/${chatId}/active-users`),
+
+  markRead: (chatId: number | string) =>
+    api.post<void>(`/chats/${chatId}/read`),
+
+  acknowledgeTripRemovals: () =>
+    api.post<void>("/chats/me/acknowledge-trip-removals"),
 };

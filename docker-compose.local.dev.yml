@@ -1,0 +1,27 @@
+# Hot-reload backend: merge with docker-compose.local.yml
+#
+#   docker compose -f docker-compose.local.yml -f docker-compose.local.dev.yml up -d db redis backend
+#
+# Or: make up-local-dev
+#
+# Uvicorn restarts when Python files under app/ or alembic/ change. Use with `make dev-frontend`
+# (http://localhost:5173). API stays on :8000.
+
+services:
+  backend:
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+      - --reload-dir
+      - /app/app
+      - --proxy-headers
+      - --forwarded-allow-ips
+      - "*"

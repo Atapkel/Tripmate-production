@@ -18,6 +18,7 @@ import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { ROUTES } from "@/lib/constants";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function EditTripPage() {
   const { id } = useParams();
@@ -70,6 +71,18 @@ export default function EditTripPage() {
   });
 
   if (isLoading) return <PageContainer><div className="flex justify-center py-12"><Spinner size="lg" /></div></PageContainer>;
+
+  if (trip?.status === "deleted_by_host") {
+    return (
+      <PageContainer>
+        <EmptyState
+          title="Trip was removed"
+          description="This trip is no longer editable."
+          action={<Button onClick={() => navigate(ROUTES.TRIP_DETAIL(id!))}>View trip</Button>}
+        />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>

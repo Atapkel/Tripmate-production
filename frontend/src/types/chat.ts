@@ -4,6 +4,12 @@ export interface ChatGroup {
   name: string;
   created_at: string;
   updated_at: string;
+  /** From GET /chats/me; omitted on older API versions. */
+  unread_count?: number;
+  /** Linked trip vacancy status (e.g. deleted_by_host). */
+  trip_status?: string | null;
+  /** True until the user opens this chat or the Archive tab (new host removal). */
+  trip_removal_unseen?: boolean;
 }
 
 export interface ChatMember {
@@ -16,7 +22,8 @@ export interface ChatMember {
 export interface ChatMessage {
   id: number;
   chat_group_id: number;
-  sender_id: number;
+  /** Absent for TripMate system messages */
+  sender_id?: number | null;
   sender_name?: string;
   content: string;
   created_at: string;

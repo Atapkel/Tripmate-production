@@ -37,7 +37,7 @@ class TripVacancy(Base):
     max_age = Column(Integer, nullable=True)
     gender_preference = Column(String(20), nullable=True)
 
-    # Status: open, matched, closed, cancelled
+    # Status: open, matched, closed, cancelled, deleted_by_host (soft delete; chat kept)
     status = Column(String(20), default="open", nullable=False)
 
     created_at = Column(DateTime, default=func.now(), nullable=False)
@@ -79,6 +79,7 @@ class Offer(Base):
     status = Column(String(20), default="pending", nullable=False)
 
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    offerer_outcome_seen_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 

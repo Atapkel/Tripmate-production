@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Calendar, Banknote, Users, MapPin, Clock, Edit, Trash2, Eye, Sparkles, CheckCircle } from "lucide-react";
+import { Calendar, Banknote, Users, MapPin, Clock, Edit, Trash2, Eye, Sparkles, CheckCircle, MessageCircle } from "lucide-react";
 import { tripService } from "@/services/tripService";
+import { chatService } from "@/services/chatService";
 import { profileService } from "@/services/profileService";
 import { authService } from "@/services/authService";
 import { offerService } from "@/services/offerService";
@@ -65,10 +66,50 @@ export default function TripDetailPage() {
       (o) => o.trip_vacancy_id === trip?.id && o.status === "accepted",
     );
 
+  const isRemoved = trip?.status === "deleted_by_host";
+
+  const { data: receivedOffersPoll } = useQuery({
+    queryKey: queryKeys.offers.received,
+    queryFn: () => offerService.getReceived().then((r) => r.data),
+    enabled: !!isOwner && !!trip && !isRemoved,
+    refetchInterval: 12_000,
+  });
+
+  const pendingOnTripRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!isOwner || !trip || isRemoved || receivedOffersPoll === undefined) return;
+
+    const pending = receivedOffersPoll.filter(
+      (o) => o.trip_vacancy_id === trip.id && o.status === "pending",
+    ).length;
+
+    if (pendingOnTripRef.current === null) {
+      pendingOnTripRef.current = pending;
+      return;
+    }
+    if (pending > pendingOnTripRef.current) {
+      const label = [trip.destination_city?.name, trip.destination_country?.name]
+        .filter(Boolean)
+        .join(", ");
+      toast.success(label ? `New offer for ${label}` : "New offer on your trip");
+    }
+    pendingOnTripRef.current = pending;
+  }, [receivedOffersPoll, isOwner, trip, isRemoved]);
+
+  useEffect(() => {
+    pendingOnTripRef.current = null;
+  }, [trip?.id]);
+
+  const { data: tripChat } = useQuery({
+    queryKey: ["chats", "by-trip", trip?.id ?? 0] as const,
+    queryFn: () => chatService.getByTrip(trip!.id).then((r) => r.data),
+    enabled: !!trip && isMember,
+  });
+
   const { data: plan } = useQuery({
     queryKey: queryKeys.trips.plan(id!),
     queryFn: () => tripService.getPlan(id!).then((r) => r.data),
-    enabled: !!id && !!isMember,
+    enabled: !!id && !!isMember && !isRemoved,
     retry: false,
   });
 
@@ -85,8 +126,12 @@ export default function TripDetailPage() {
   const deleteMutation = useMutation({
     mutationFn: () => tripService.delete(id!),
     onSuccess: () => {
-      toast.success("Trip deleted.");
+      toast.success("Trip removed.");
       queryClient.invalidateQueries({ queryKey: queryKeys.trips.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chats.mine });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.mine });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.attention });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.received });
       navigate(ROUTES.MY_TRIPS);
     },
     onError: (err) => toast.error(getErrorMessage(err)),
@@ -101,6 +146,18 @@ export default function TripDetailPage() {
     <PageContainer>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
         <div className="lg:col-span-2 space-y-4">
+          {isRemoved && (
+            <Card className="border-warning/50 bg-warning/5">
+              <p className="text-sm text-text-primary">
+                This trip was removed by the organizer. The trip chat stays available to read past messages; new messages are disabled. Check the chat for the TripMate notice.
+              </p>
+              {isMember && tripChat && (
+                <Button className="mt-3" variant="outline" size="sm" onClick={() => navigate(ROUTES.CHAT_ROOM(tripChat.id))}>
+                  <MessageCircle className="h-4 w-4 mr-1" /> Open trip chat
+                </Button>
+              )}
+            </Card>
+          )}
           <Card>
             <div className="flex items-start justify-between mb-4">
               <h2 className="text-xl font-heading font-bold text-text-primary">
@@ -124,18 +181,32 @@ export default function TripDetailPage() {
           </Card>
 
           <Card>
-            {isOwner ? (
+            {isOwner && !isRemoved ? (
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => navigate(ROUTES.TRIP_EDIT(trip.id))}><Edit className="h-4 w-4 mr-1" /> Edit</Button>
                 <Button variant="outline" onClick={() => navigate(ROUTES.TRIP_OFFERS(trip.id))}><Eye className="h-4 w-4 mr-1" /> View Offers</Button>
                 <Button variant="outline" onClick={() => navigate(ROUTES.TRIP_PLAN(trip.id))}><Sparkles className="h-4 w-4 mr-1" /> Trip Plan</Button>
-                <Button variant="danger" onClick={() => setShowDeleteDialog(true)}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button>
+                <Button variant="danger" onClick={() => setShowDeleteDialog(true)}><Trash2 className="h-4 w-4 mr-1" /> Remove trip</Button>
               </div>
-            ) : isMember ? (
+            ) : isOwner && isRemoved ? (
+              <p className="text-sm text-text-secondary">
+                You removed this trip. Members were notified in the trip chat.
+              </p>
+            ) : isMember && !isRemoved ? (
               <div className="flex flex-wrap gap-2">
+                {tripChat && (
+                  <Button variant="outline" onClick={() => navigate(ROUTES.CHAT_ROOM(tripChat.id))}><MessageCircle className="h-4 w-4 mr-1" /> Trip chat</Button>
+                )}
                 <Button variant="outline" onClick={() => navigate(ROUTES.TRIP_PLAN(trip.id))}><Sparkles className="h-4 w-4 mr-1" /> Trip Plan</Button>
               </div>
-            ) : trip.status === "open" ? (
+            ) : isMember && isRemoved ? (
+              <div className="flex flex-wrap gap-2">
+                {tripChat && (
+                  <Button variant="outline" onClick={() => navigate(ROUTES.CHAT_ROOM(tripChat.id))}><MessageCircle className="h-4 w-4 mr-1" /> Open trip chat</Button>
+                )}
+                <Button variant="outline" onClick={() => navigate(ROUTES.TRIP_PLAN(trip.id))}><Sparkles className="h-4 w-4 mr-1" /> Trip Plan</Button>
+              </div>
+            ) : trip.status === "open" && !isRemoved ? (
               hasActiveOffer ? (
                 <div className="flex items-center gap-2 text-sm text-primary-600">
                   <CheckCircle className="h-4 w-4" />
@@ -150,7 +221,7 @@ export default function TripDetailPage() {
           </Card>
 
           {/* Recommendations section */}
-          {isMember && plan?.recommended_places && plan.recommended_places.length > 0 && (
+          {isMember && !isRemoved && plan?.recommended_places && plan.recommended_places.length > 0 && (
             <Card>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
@@ -187,7 +258,7 @@ export default function TripDetailPage() {
             </Card>
           )}
 
-          {isMember && !plan && trip.people_joined >= trip.people_needed && (
+          {isMember && !isRemoved && !plan && trip.people_joined >= trip.people_needed && (
             <Card>
               <div className="flex flex-col items-center py-4 text-center">
                 <Sparkles className="h-6 w-6 text-text-tertiary mb-2" />
@@ -233,7 +304,16 @@ export default function TripDetailPage() {
       </div>
 
       {showOfferModal && <SendOfferModal tripId={trip.id} onClose={() => setShowOfferModal(false)} />}
-      <ConfirmDialog isOpen={showDeleteDialog} onClose={() => setShowDeleteDialog(false)} onConfirm={() => deleteMutation.mutate()} title="Delete Trip" message="Are you sure? This cannot be undone." confirmLabel="Delete" confirmVariant="danger" isLoading={deleteMutation.isPending} />
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={() => deleteMutation.mutate()}
+        title="Remove trip"
+        message="The trip will be hidden from the feed. The chat stays open with a TripMate notice for all members, and new messages will be disabled. Pending offers will be cancelled."
+        confirmLabel="Remove"
+        confirmVariant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </PageContainer>
   );
 }

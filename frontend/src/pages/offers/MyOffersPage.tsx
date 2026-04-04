@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -13,11 +13,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ROUTES } from "@/lib/constants";
-
-const tabs = [
-  { key: "sent", label: "Sent" },
-  { key: "received", label: "Received" },
-];
+import { countPendingOffers, countUnseenOutcomeSentOffers } from "@/lib/offersCounts";
 
 export default function MyOffersPage() {
   const navigate = useNavigate();
@@ -27,17 +23,50 @@ export default function MyOffersPage() {
   const { data: sentOffers, isLoading: sentLoading } = useQuery({
     queryKey: queryKeys.offers.mine,
     queryFn: () => offerService.getMine().then((r) => r.data),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: receivedOffers, isLoading: receivedLoading } = useQuery({
     queryKey: queryKeys.offers.received,
     queryFn: () => offerService.getReceived().then((r) => r.data),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
+
+  const tabs = useMemo(() => {
+    const sentPending = countPendingOffers(sentOffers);
+    const unseenOutcome = countUnseenOutcomeSentOffers(sentOffers);
+    const sentAttention = sentPending + unseenOutcome;
+    const receivedPending = countPendingOffers(receivedOffers);
+    return [
+      { key: "sent", label: "Sent", count: sentAttention > 0 ? sentAttention : undefined },
+      { key: "received", label: "Received", count: receivedPending > 0 ? receivedPending : undefined },
+    ];
+  }, [sentOffers, receivedOffers]);
+
+  const ackOutcomesMutation = useMutation({
+    mutationFn: () => offerService.acknowledgeSentOutcomes(),
+    onSuccess: (res) => {
+      queryClient.setQueryData(queryKeys.offers.attention, res.data);
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.mine });
+    },
+  });
+
+  useEffect(() => {
+    if (activeTab !== "sent" || !sentOffers?.length) return;
+    if (countUnseenOutcomeSentOffers(sentOffers) < 1) return;
+    if (ackOutcomesMutation.isPending) return;
+    ackOutcomesMutation.mutate();
+  }, [activeTab, sentOffers, ackOutcomesMutation.isPending]);
 
   const cancelMutation = useMutation({
     mutationFn: (id: number) => offerService.cancel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.mine });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.received });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.attention });
+      queryClient.invalidateQueries({ queryKey: ["offers", "trip"] });
       toast.success("Offer cancelled.");
     },
     onError: (err) => toast.error(getErrorMessage(err)),

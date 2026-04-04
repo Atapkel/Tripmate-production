@@ -8,6 +8,7 @@ from app.models.chat.messages import Message
 from app.repositories.chat_group_repository import ChatGroupRepository
 from app.repositories.chat_member_repository import ChatMemberRepository
 from app.repositories.message_repository import MessageRepository
+from app.repositories.trip_vacancy_repository import TripVacancyRepository
 
 
 class ChatService:
@@ -16,6 +17,7 @@ class ChatService:
         self.chat_group_repo = ChatGroupRepository(db)
         self.chat_member_repo = ChatMemberRepository(db)
         self.message_repo = MessageRepository(db)
+        self.trip_vacancy_repo = TripVacancyRepository(db)
 
     # ── CHAT GROUP OPERATIONS ───────────────────────────────────────────
 
@@ -61,10 +63,67 @@ class ChatService:
         except Exception as e:
             return False, None, f"Failed to get chat group: {str(e)}"
 
+    async def trip_removal_unseen_for_user(self, group: ChatGroup, user_id: int) -> bool:
+        vac = group.trip_vacancy
+        if vac is None or vac.status != "deleted_by_host":
+            return False
+        member = await self.chat_member_repo.get_by_chat_and_user(group.id, user_id)
+        if not member:
+            return False
+        return member.trip_removal_seen_at is None
+
     async def get_my_chat_groups(
         self, user_id: int, skip: int = 0, limit: int = 100
-    ) -> List[ChatGroup]:
-        return await self.chat_group_repo.get_user_chat_groups(user_id, skip, limit)
+    ) -> List[Tuple[ChatGroup, int, bool]]:
+        groups = await self.chat_group_repo.get_user_chat_groups(user_id, skip, limit)
+        out: List[Tuple[ChatGroup, int, bool]] = []
+        for g in groups:
+            unread = await self.get_unread_count_for_user(g.id, user_id)
+            removal_unseen = await self.trip_removal_unseen_for_user(g, user_id)
+            out.append((g, unread, removal_unseen))
+        return out
+
+    async def get_unread_count_for_user(self, chat_group_id: int, user_id: int) -> int:
+        member = await self.chat_member_repo.get_by_chat_and_user(chat_group_id, user_id)
+        if not member:
+            return 0
+        return await self.message_repo.count_unread_for_member(
+            chat_group_id,
+            user_id,
+            member.last_read_message_id,
+        )
+
+    async def mark_chat_read(
+        self, chat_group_id: int, user_id: int
+    ) -> Tuple[bool, Optional[str]]:
+        try:
+            if not await self.chat_member_repo.is_member(chat_group_id, user_id):
+                return False, "You are not a member of this chat group"
+
+            max_id = await self.message_repo.get_max_message_id(chat_group_id)
+            await self.chat_member_repo.set_last_read_message_id(
+                chat_group_id, user_id, max_id
+            )
+            chat_group = await self.chat_group_repo.get_by_id(chat_group_id)
+            if chat_group and chat_group.trip_vacancy:
+                if chat_group.trip_vacancy.status == "deleted_by_host":
+                    await self.chat_member_repo.mark_trip_removal_seen(
+                        chat_group_id, user_id
+                    )
+            return True, None
+        except Exception as e:
+            return False, f"Failed to mark chat read: {str(e)}"
+
+    async def acknowledge_deleted_trip_removals(
+        self, user_id: int
+    ) -> Tuple[bool, Optional[str]]:
+        try:
+            await self.chat_member_repo.acknowledge_deleted_trip_removals_for_user(
+                user_id
+            )
+            return True, None
+        except Exception as e:
+            return False, f"Failed to acknowledge: {str(e)}"
 
     # ── MEMBER OPERATIONS ───────────────────────────────────────────────
 
@@ -81,6 +140,10 @@ class ChatService:
                 return False, None, "User is already a member of this chat group"
 
             member = await self.chat_member_repo.create(chat_group_id, user_id)
+            max_id = await self.message_repo.get_max_message_id(chat_group_id)
+            await self.chat_member_repo.set_last_read_message_id(
+                chat_group_id, user_id, max_id
+            )
             return True, member, None
         except Exception as e:
             return False, None, f"Failed to add member: {str(e)}"
@@ -121,6 +184,16 @@ class ChatService:
             if not await self.chat_member_repo.is_member(chat_group_id, sender_id):
                 return False, None, "You are not a member of this chat group"
 
+            chat_group = await self.chat_group_repo.get_by_id(chat_group_id)
+            if chat_group:
+                trip = await self.trip_vacancy_repo.get_by_id(chat_group.trip_vacancy_id)
+                if trip and trip.status == "deleted_by_host":
+                    return (
+                        False,
+                        None,
+                        "This trip was removed by the organizer. Messaging is disabled.",
+                    )
+
             message = await self.message_repo.create(chat_group_id, sender_id, content)
             return True, message, None
         except Exception as e:
@@ -159,6 +232,9 @@ class ChatService:
             message = await self.message_repo.get_by_id(message_id)
             if not message:
                 return False, "Message not found"
+
+            if message.sender_id is None:
+                return False, "System messages cannot be deleted"
 
             if message.sender_id != user_id:
                 return False, "You can only delete your own messages"

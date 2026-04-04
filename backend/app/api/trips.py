@@ -148,4 +148,6 @@ async def delete_trip(
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
-    return {"message": "Trip deleted successfully"}
+    return {
+        "message": "Trip removed. Members can still read the chat; new messages are disabled.",
+    }
