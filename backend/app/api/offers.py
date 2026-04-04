@@ -36,7 +36,7 @@ async def create_offer(
     return offer
 
 
-@router.get("/me", response_model=List[OfferResponse])
+@router.get("/me", response_model=List[OfferWithTripResponse])
 async def get_my_offers(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),

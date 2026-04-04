@@ -41,6 +41,10 @@ class OfferRepository:
     ) -> List[Offer]:
         query = (
             select(Offer)
+            .options(
+                selectinload(Offer.vacancy).selectinload(TripVacancy.destination_country),
+                selectinload(Offer.vacancy).selectinload(TripVacancy.destination_city),
+            )
             .filter(Offer.offerer_id == offerer_id)
             .order_by(Offer.created_at.desc())
             .offset(skip)

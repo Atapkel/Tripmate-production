@@ -67,7 +67,7 @@ export const tripSchema = z.object({
   end_date: z.string().min(1, "End date is required"),
   max_budget: z.number().min(1, "Budget must be positive").max(10_000_000, "Budget seems unrealistic").optional(),
   min_budget: z.number().min(0).optional(),
-  people_needed: z.number().min(1, "At least 1 person needed"),
+  people_needed: z.number().min(1, "At least 1 person needed").max(20, "Maximum 20 people allowed"),
   min_age: z.number().min(16).max(100).optional(),
   max_age: z.number().min(16).max(100).optional(),
   gender_preference: z.string().optional(),

@@ -83,7 +83,7 @@ export default function CreateTripPage() {
           </div>
 
           <h3 className="text-sm font-semibold text-text-primary pt-2">Companion Preferences</h3>
-          <Input id="people_needed" label="People Needed" type="number" min={1} {...register("people_needed", { valueAsNumber: true })} />
+          <Input id="people_needed" label="People Needed" type="number" min={1} max={20} {...register("people_needed", { valueAsNumber: true })} />
           <div className="grid grid-cols-2 gap-3">
             <Input id="min_age" label="Min Age" type="number" min={16} max={100} error={errors.min_age?.message} {...register("min_age", { valueAsNumber: true })} />
             <Input id="max_age" label="Max Age" type="number" min={16} max={100} error={errors.max_age?.message} {...register("max_age", { valueAsNumber: true })} />

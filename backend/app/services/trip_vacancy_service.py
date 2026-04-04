@@ -183,6 +183,21 @@ class TripVacancyService:
             if mn_age is not None and mx_age is not None and mn_age > mx_age:
                 return False, None, "Max age must be greater than or equal to min age"
 
+            # Validate people_needed vs people_joined
+            new_people_needed = update_data.get("people_needed")
+            if new_people_needed is not None:
+                if new_people_needed < trip_vacancy.people_joined:
+                    return (
+                        False,
+                        None,
+                        f"People needed cannot be less than people already joined ({trip_vacancy.people_joined})",
+                    )
+                # Auto-adjust status based on capacity
+                if new_people_needed > trip_vacancy.people_joined and trip_vacancy.status == "matched":
+                    update_data["status"] = "open"
+                elif new_people_needed == trip_vacancy.people_joined and trip_vacancy.status == "open":
+                    update_data["status"] = "matched"
+
             updated = await self.trip_vacancy_repo.update(trip_vacancy_id, **update_data)
             return True, updated, None
         except Exception as e:

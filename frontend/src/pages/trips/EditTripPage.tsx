@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,8 +35,10 @@ export default function EditTripPage() {
     resolver: zodResolver(tripSchema),
   });
 
+  const initialized = useRef(false);
   useEffect(() => {
-    if (trip) {
+    if (trip && !initialized.current) {
+      initialized.current = true;
       reset({
         destination_country_id: trip.destination_country_id,
         destination_city_id: trip.destination_city_id,
@@ -113,7 +115,7 @@ export default function EditTripPage() {
               <Input id="max_budget" label="Max Budget" type="number" min={0} error={errors.max_budget?.message} {...register("max_budget", { valueAsNumber: true })} />
             </div>
           </div>
-          <Input id="people_needed" label="People Needed" type="number" min={1} error={errors.people_needed?.message} {...register("people_needed", { valueAsNumber: true })} />
+          <Input id="people_needed" label="People Needed" type="number" min={1} max={20} error={errors.people_needed?.message} {...register("people_needed", { valueAsNumber: true })} />
           <div>
             <label className="block text-sm font-semibold text-text-primary mb-1.5">Age Range</label>
             <div className="grid grid-cols-2 gap-3">
