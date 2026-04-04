@@ -14,6 +14,9 @@ export interface Trip {
   people_needed: number;
   people_joined: number;
   description?: string;
+  destination_description?: string | null;
+  destination_photo_url?: string | null;
+  destination_wiki_url?: string | null;
   min_age?: number;
   max_age?: number;
   gender_preference?: string;

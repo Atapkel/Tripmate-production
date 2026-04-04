@@ -21,10 +21,14 @@ class TripVacancyResponse(BaseModel):
     people_needed: int
     people_joined: int
     description: Optional[str] = None
+    destination_description: Optional[str] = None
+    destination_photo_url: Optional[str] = None
+    destination_wiki_url: Optional[str] = None
     min_age: Optional[int] = None
     max_age: Optional[int] = None
     gender_preference: Optional[str] = None
     status: str
+
     created_at: datetime
     updated_at: datetime
 

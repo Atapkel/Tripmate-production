@@ -14,15 +14,16 @@ from app.schemas.trips import (
     TripVacancyUpdateRequest,
 )
 from app.services.trip_vacancy_service import TripVacancyService
+from app.services.wikipedia_service import WikipediaService
 
 router = APIRouter(prefix="/trips", tags=["Trip Vacancies"])
 
 
 @router.post("", response_model=TripVacancyResponse, status_code=status.HTTP_201_CREATED)
 async def create_trip(
-    request: TripVacancyCreateRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+        request: TripVacancyCreateRequest,
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
 ):
     service = TripVacancyService(db)
     success, trip, error = await service.create_trip_vacancy(
@@ -36,10 +37,10 @@ async def create_trip(
 
 @router.get("/me", response_model=List[TripVacancyResponse])
 async def get_my_trips(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+        skip: int = Query(0, ge=0),
+        limit: int = Query(100, ge=1, le=100),
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
 ):
     service = TripVacancyService(db)
     return await service.get_my_trip_vacancies(
@@ -57,26 +58,64 @@ async def get_trip(
     if not trip:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
 
-    return trip
+    wiki_info = {
+        "description": None,
+        "photo_url": None,
+        "wiki_url": None,
+    }
+    try:
+        if trip.destination_city and trip.destination_country:
+            wiki = WikipediaService()
+            wiki_info = await wiki.get_city_info(
+                city_name=trip.destination_city.name,
+                country_name=trip.destination_country.name,
+            )
+    except Exception:
+        pass
+
+    return TripVacancyResponse(
+        id=trip.id,
+        requester_id=trip.requester_id,
+        destination_country_id=trip.destination_country_id,
+        destination_city_id=trip.destination_city_id,
+        destination_country=trip.destination_country,
+        destination_city=trip.destination_city,
+        start_date=trip.start_date,
+        end_date=trip.end_date,
+        min_budget=trip.min_budget,
+        max_budget=trip.max_budget,
+        people_needed=trip.people_needed,
+        people_joined=trip.people_joined,
+        description=trip.description,
+        min_age=trip.min_age,
+        max_age=trip.max_age,
+        gender_preference=trip.gender_preference,
+        status=trip.status,
+        created_at=trip.created_at,
+        updated_at=trip.updated_at,
+        destination_description=wiki_info["description"],
+        destination_photo_url=wiki_info["photo_url"],
+        destination_wiki_url=wiki_info["wiki_url"],
+    )
 
 
 @router.get("", response_model=List[TripVacancyResponse])
 async def list_trips(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=100),
-    destination_city: Optional[str] = None,
-    destination_country: Optional[str] = None,
-    trip_status: Optional[str] = Query(None, alias="status"),
-    start_date_from: Optional[date] = None,
-    start_date_to: Optional[date] = None,
-    min_age: Optional[int] = Query(None, ge=0, le=150),
-    max_age: Optional[int] = Query(None, ge=0, le=150),
-    min_budget: Optional[float] = Query(None, ge=0),
-    max_budget: Optional[float] = Query(None, ge=0),
-    gender_preference: Optional[str] = Query(None, pattern="^(male|female|any)$"),
-    from_city: Optional[str] = None,
-    from_country: Optional[str] = None,
-    db: AsyncSession = Depends(get_db),
+        skip: int = Query(0, ge=0),
+        limit: int = Query(100, ge=1, le=100),
+        destination_city: Optional[str] = None,
+        destination_country: Optional[str] = None,
+        trip_status: Optional[str] = Query(None, alias="status"),
+        start_date_from: Optional[date] = None,
+        start_date_to: Optional[date] = None,
+        min_age: Optional[int] = Query(None, ge=0, le=150),
+        max_age: Optional[int] = Query(None, ge=0, le=150),
+        min_budget: Optional[float] = Query(None, ge=0),
+        max_budget: Optional[float] = Query(None, ge=0),
+        gender_preference: Optional[str] = Query(None, pattern="^(male|female|any)$"),
+        from_city: Optional[str] = None,
+        from_country: Optional[str] = None,
+        db: AsyncSession = Depends(get_db),
 ):
     service = TripVacancyService(db)
     return await service.get_all_trip_vacancies(
@@ -99,10 +138,10 @@ async def list_trips(
 
 @router.put("/{trip_id}", response_model=TripVacancyResponse)
 async def update_trip(
-    trip_id: int,
-    request: TripVacancyUpdateRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+        trip_id: int,
+        request: TripVacancyUpdateRequest,
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
 ):
     service = TripVacancyService(db)
     success, trip, error = await service.update_trip_vacancy(
@@ -118,10 +157,10 @@ async def update_trip(
 
 @router.patch("/{trip_id}/status", response_model=TripVacancyResponse)
 async def update_trip_status(
-    trip_id: int,
-    status_value: str = Query(..., alias="status"),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+        trip_id: int,
+        status_value: str = Query(..., alias="status"),
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
 ):
     service = TripVacancyService(db)
     success, trip, error = await service.update_status(
@@ -137,9 +176,9 @@ async def update_trip_status(
 
 @router.delete("/{trip_id}", response_model=MessageResponse)
 async def delete_trip(
-    trip_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+        trip_id: int,
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
 ):
     service = TripVacancyService(db)
     success, error = await service.delete_trip_vacancy(

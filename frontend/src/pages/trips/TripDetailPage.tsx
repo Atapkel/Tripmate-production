@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Calendar, Banknote, Users, MapPin, Clock, Edit, Trash2, Eye, Sparkles, CheckCircle } from "lucide-react";
+import { Calendar, Banknote, Users, MapPin, Clock, Edit, Trash2, Eye, Sparkles, CheckCircle, ExternalLink } from "lucide-react";
 import { tripService } from "@/services/tripService";
 import { profileService } from "@/services/profileService";
 import { authService } from "@/services/authService";
@@ -108,6 +108,34 @@ export default function TripDetailPage() {
               </h2>
               <TripStatusBadge status={trip.status} />
             </div>
+            {trip.destination_photo_url && (
+              <div className="mb-4 rounded-xl overflow-hidden border border-border">
+                <img
+                  src={trip.destination_photo_url}
+                  alt={trip.destination_city?.name ? `Photo: ${trip.destination_city.name}` : "Destination"}
+                  className="w-full max-h-56 object-cover"
+                  loading="lazy"
+                />
+              </div>
+            )}
+            {(trip.destination_description || trip.destination_wiki_url) && (
+              <div className="mb-4 space-y-2">
+                {trip.destination_description && (
+                  <p className="text-sm text-text-secondary leading-relaxed">{trip.destination_description}</p>
+                )}
+                {trip.destination_wiki_url && (
+                  <a
+                    href={trip.destination_wiki_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline"
+                  >
+                    Read more on Wikipedia
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="flex items-center gap-2 text-text-secondary"><Calendar className="h-4 w-4 text-text-tertiary" />{formatDateRange(trip.start_date, trip.end_date)} ({duration} days)</div>
               <div className="flex items-center gap-2 text-text-secondary"><Banknote className="h-4 w-4 text-text-tertiary" />{formatBudgetRange(trip.min_budget, trip.max_budget)}</div>
