@@ -34,6 +34,11 @@ export default function CreateProfilePage() {
   const countryId = watch("country_id");
   const bio = watch("bio") || "";
 
+  const { data: nationalities } = useQuery({
+    queryKey: queryKeys.options.nationalities,
+    queryFn: () => optionsService.getNationalities().then((r) => r.data),
+  });
+
   const { data: countries } = useQuery({
     queryKey: queryKeys.options.countries,
     queryFn: () => optionsService.getCountries().then((r) => r.data),
@@ -99,7 +104,21 @@ export default function CreateProfilePage() {
             {errors.gender && <p className="text-sm text-error">{errors.gender.message}</p>}
           </div>
 
-          <Input id="nationality" label="Nationality" placeholder="e.g. Kazakh" error={errors.nationality?.message} {...register("nationality")} />
+          <Controller
+            name="nationality"
+            control={control}
+            render={({ field }) => (
+              <Select
+                id="nationality"
+                label="Nationality"
+                placeholder="Select nationality"
+                options={(nationalities || []).map((n) => ({ value: n.name, label: n.name }))}
+                error={errors.nationality?.message}
+                value={field.value || ""}
+                onChange={(e) => field.onChange(e.target.value || "")}
+              />
+            )}
+          />
 
           <Textarea
             id="bio"

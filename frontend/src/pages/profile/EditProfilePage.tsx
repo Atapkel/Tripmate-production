@@ -64,6 +64,11 @@ export default function EditProfilePage() {
     }
   }, [profile, reset]);
 
+  const { data: nationalities } = useQuery({
+    queryKey: queryKeys.options.nationalities,
+    queryFn: () => optionsService.getNationalities().then((r) => r.data),
+  });
+
   const { data: countries } = useQuery({
     queryKey: queryKeys.options.countries,
     queryFn: () => optionsService.getCountries().then((r) => r.data),
@@ -152,7 +157,21 @@ export default function EditProfilePage() {
               ))}
             </div>
           </div>
-          <Input id="nationality" label="Nationality" placeholder="e.g. Kazakh" error={errors.nationality?.message} {...register("nationality")} />
+          <Controller
+            name="nationality"
+            control={control}
+            render={({ field }) => (
+              <Select
+                id="nationality"
+                label="Nationality"
+                placeholder="Select nationality"
+                options={(nationalities || []).map((n) => ({ value: n.name, label: n.name }))}
+                error={errors.nationality?.message}
+                value={field.value || ""}
+                onChange={(e) => field.onChange(e.target.value || "")}
+              />
+            )}
+          />
           <Textarea id="bio" label="Bio" showCount maxLength={500} currentLength={bio.length} rows={3} error={errors.bio?.message} {...register("bio")} />
           <div className="grid grid-cols-2 gap-4">
             <Input id="instagram_handle" label="Instagram" placeholder="@username" error={errors.instagram_handle?.message} {...register("instagram_handle")} />
