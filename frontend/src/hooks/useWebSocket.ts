@@ -65,6 +65,7 @@ export function useWebSocket(chatId: number | string | null) {
               break;
             case "offer_received": {
               queryClient.invalidateQueries({ queryKey: queryKeys.offers.received });
+              queryClient.invalidateQueries({ queryKey: queryKeys.offers.attention });
               const tid = data.trip_vacancy_id as number | undefined;
               if (tid != null) {
                 queryClient.invalidateQueries({

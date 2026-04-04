@@ -130,6 +130,7 @@ export default function TripDetailPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.trips.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.chats.mine });
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.mine });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.attention });
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.received });
       navigate(ROUTES.MY_TRIPS);
     },

@@ -1,11 +1,11 @@
-from datetime import datetime
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import List, Optional, Tuple
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.trips import Offer
+from app.models.trips import Offer, TripVacancy
 
 
 class OfferRepository:
@@ -72,8 +72,6 @@ class OfferRepository:
     async def get_received_offers(
         self, requester_id: int, skip: int = 0, limit: int = 100
     ) -> List[Offer]:
-        from app.models.trips import TripVacancy
-
         query = (
             select(Offer)
             .options(
@@ -118,9 +116,59 @@ class OfferRepository:
         offer.status = status
         if reviewed_at:
             offer.reviewed_at = reviewed_at
+        if status == "rejected":
+            offer.offerer_rejection_seen_at = None
         await self.db.commit()
         await self.db.refresh(offer)
         return offer
+
+    async def count_pending_received_for_requester(self, requester_id: int) -> int:
+        q = (
+            select(func.count())
+            .select_from(Offer)
+            .join(TripVacancy, Offer.trip_vacancy_id == TripVacancy.id)
+            .where(
+                and_(
+                    TripVacancy.requester_id == requester_id,
+                    Offer.status == "pending",
+                )
+            )
+        )
+        result = await self.db.execute(q)
+        return int(result.scalar_one() or 0)
+
+    async def count_unseen_rejected_for_offerer(self, offerer_id: int) -> int:
+        q = select(func.count()).where(
+            and_(
+                Offer.offerer_id == offerer_id,
+                Offer.status == "rejected",
+                Offer.offerer_rejection_seen_at.is_(None),
+            )
+        )
+        result = await self.db.execute(q)
+        return int(result.scalar_one() or 0)
+
+    async def mark_rejected_offers_seen_for_offerer(self, offerer_id: int) -> int:
+        now = datetime.now(timezone.utc)
+        stmt = (
+            update(Offer)
+            .where(
+                and_(
+                    Offer.offerer_id == offerer_id,
+                    Offer.status == "rejected",
+                    Offer.offerer_rejection_seen_at.is_(None),
+                )
+            )
+            .values(offerer_rejection_seen_at=now)
+        )
+        result = await self.db.execute(stmt)
+        await self.db.commit()
+        return result.rowcount or 0
+
+    async def get_attention_counts(self, user_id: int) -> Tuple[int, int]:
+        pending = await self.count_pending_received_for_requester(user_id)
+        unseen_rejected = await self.count_unseen_rejected_for_offerer(user_id)
+        return pending, unseen_rejected
 
     # ── DELETE ──────────────────────────────────────────────────────────
 

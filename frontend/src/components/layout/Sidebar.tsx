@@ -3,7 +3,7 @@ import { Compass, Map, MessageCircle, Send, User, Settings, MapPin, Sparkles } f
 import { clsx } from "clsx";
 import { ROUTES } from "@/lib/constants";
 import { isMainNavItemActive, isNavItemActive, normalizePathname } from "@/lib/navActive";
-import { usePendingReceivedOffersCount } from "@/hooks/usePendingReceivedOffersCount";
+import { useOffersAttention } from "@/hooks/useOffersAttention";
 import { useChatsUnreadTotal } from "@/hooks/useChatsUnreadTotal";
 import { NavCountBadge } from "@/components/ui/NavCountBadge";
 
@@ -37,7 +37,9 @@ const navItems: NavItem[] = [
 export function Sidebar({ className }: { className?: string }) {
   const { pathname } = useLocation();
   const settingsActive = isNavItemActive(pathname, ROUTES.SETTINGS, false);
-  const { data: pendingReceived = 0 } = usePendingReceivedOffersCount();
+  const { data: attention } = useOffersAttention();
+  const offersBadgeCount =
+    (attention?.pending_received ?? 0) + (attention?.unseen_rejected_sent ?? 0);
   const { data: chatsUnread = 0 } = useChatsUnreadTotal();
 
   return (
@@ -60,7 +62,7 @@ export function Sidebar({ className }: { className?: string }) {
               "isActive" in item
                 ? item.isActive(pathname)
                 : isMainNavItemActive(pathname, item.to, item.end);
-            const offersBadge = item.to === ROUTES.OFFERS ? pendingReceived : 0;
+            const offersBadge = item.to === ROUTES.OFFERS ? offersBadgeCount : 0;
             const messagesBadge = item.to === ROUTES.CHATS ? chatsUnread : 0;
             return (
               <Link
@@ -69,7 +71,7 @@ export function Sidebar({ className }: { className?: string }) {
                 aria-current={isActive ? "page" : undefined}
                 aria-label={
                   offersBadge > 0
-                    ? `${item.label}, ${offersBadge} pending`
+                    ? `${item.label}, ${offersBadge} need attention`
                     : messagesBadge > 0
                       ? `${item.label}, ${messagesBadge} unread`
                       : undefined

@@ -40,11 +40,17 @@ class OfferResponse(BaseModel):
     proposed_budget: Optional[Decimal]
     status: str
     reviewed_at: Optional[datetime]
+    offerer_rejection_seen_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class OfferAttentionResponse(BaseModel):
+    pending_received: int
+    unseen_rejected_sent: int
 
 
 class OfferWithTripResponse(OfferResponse):

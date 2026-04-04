@@ -1,5 +1,10 @@
 import api from "./api";
-import type { Offer, CreateOfferPayload, UpdateOfferStatusPayload } from "@/types/offer";
+import type {
+  Offer,
+  OfferAttention,
+  CreateOfferPayload,
+  UpdateOfferStatusPayload,
+} from "@/types/offer";
 import type { MessageResponse } from "@/types/common";
 
 export const offerService = {
@@ -8,6 +13,11 @@ export const offerService = {
 
   getMine: (skip = 0, limit = 100) =>
     api.get<Offer[]>("/offers/me", { params: { skip, limit } }),
+
+  getAttention: () => api.get<OfferAttention>("/offers/me/attention"),
+
+  acknowledgeRejectedSent: () =>
+    api.post<OfferAttention>("/offers/me/acknowledge-rejected"),
 
   getReceived: (skip = 0, limit = 100) =>
     api.get<Offer[]>("/offers/received", { params: { skip, limit } }),

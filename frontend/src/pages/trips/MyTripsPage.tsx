@@ -19,6 +19,7 @@ const tabs = [
   { key: "open", label: "Open" },
   { key: "closed", label: "Closed" },
   { key: "cancelled", label: "Cancelled" },
+  { key: "removed", label: "Removed" },
 ];
 
 export default function MyTripsPage() {
@@ -36,12 +37,15 @@ export default function MyTripsPage() {
   });
 
   const filteredTrips = trips?.filter((t) => {
-    if (activeTab === "all") return true;
-    if (activeTab === "cancelled") {
-      return t.status === "cancelled" || t.status === "deleted_by_host";
-    }
+    if (activeTab === "all") return t.status !== "deleted_by_host";
+    if (activeTab === "cancelled") return t.status === "cancelled";
+    if (activeTab === "removed") return t.status === "deleted_by_host";
     return t.status === activeTab;
   });
+
+  const onlyRemovedTrips =
+    !!trips?.length && trips.every((t) => t.status === "deleted_by_host");
+
   const pendingOffers = receivedOffers?.filter((o) => o.status === "pending") || [];
 
   return (
@@ -89,9 +93,33 @@ export default function MyTripsPage() {
       ) : !filteredTrips || filteredTrips.length === 0 ? (
         <EmptyState
           icon={<Map className="h-12 w-12" />}
-          title={activeTab === "all" ? "No trips yet" : `No ${activeTab} trips`}
-          description={activeTab === "all" ? "Create your first trip!" : undefined}
-          action={activeTab === "all" ? <Button onClick={() => navigate(ROUTES.CREATE_TRIP)}>Create Trip</Button> : undefined}
+          title={
+            activeTab === "all" && onlyRemovedTrips
+              ? "No active trips"
+              : activeTab === "all"
+                ? "No trips yet"
+                : activeTab === "removed"
+                  ? "No removed trips"
+                  : `No ${activeTab} trips`
+          }
+          description={
+            activeTab === "all" && onlyRemovedTrips
+              ? "Open the Removed tab to see trips you took down. The chat is still there if you need it."
+              : activeTab === "all"
+                ? "Create your first trip!"
+                : activeTab === "removed"
+                  ? "Trips you remove as organizer appear here. The trip chat stays available."
+                  : undefined
+          }
+          action={
+            activeTab === "all" && !onlyRemovedTrips ? (
+              <Button onClick={() => navigate(ROUTES.CREATE_TRIP)}>Create Trip</Button>
+            ) : activeTab === "all" && onlyRemovedTrips ? (
+              <Button variant="outline" onClick={() => setActiveTab("removed")}>
+                View removed
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

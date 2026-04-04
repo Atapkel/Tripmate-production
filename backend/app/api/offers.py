@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.models.users import User
 from app.schemas.common import MessageResponse
 from app.schemas.trips import (
+    OfferAttentionResponse,
     OfferCreateRequest,
     OfferResponse,
     OfferStatusUpdateRequest,
@@ -44,6 +45,38 @@ async def get_my_offers(
 ):
     service = OfferService(db)
     return await service.get_my_offers(current_user.id, skip, limit)
+
+
+@router.get("/me/attention", response_model=OfferAttentionResponse)
+async def get_my_offer_attention(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = OfferService(db)
+    pending, unseen = await service.get_offer_attention_counts(current_user.id)
+    return OfferAttentionResponse(
+        pending_received=pending, unseen_rejected_sent=unseen
+    )
+
+
+@router.post("/me/acknowledge-rejected", response_model=OfferAttentionResponse)
+async def acknowledge_rejected_sent_offers(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = OfferService(db)
+    success, counts, error = await service.acknowledge_rejected_offers_seen(
+        current_user.id
+    )
+    if not success or counts is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error or "Failed to acknowledge",
+        )
+    pending, unseen = counts
+    return OfferAttentionResponse(
+        pending_received=pending, unseen_rejected_sent=unseen
+    )
 
 
 @router.get("/received", response_model=List[OfferWithTripResponse])

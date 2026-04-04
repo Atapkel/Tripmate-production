@@ -3,7 +3,7 @@ import { Compass, Map, MessageCircle, Send, Sparkles } from "lucide-react";
 import { clsx } from "clsx";
 import { ROUTES } from "@/lib/constants";
 import { getBottomNavActiveId, normalizePathname } from "@/lib/navActive";
-import { usePendingReceivedOffersCount } from "@/hooks/usePendingReceivedOffersCount";
+import { useOffersAttention } from "@/hooks/useOffersAttention";
 import { useChatsUnreadTotal } from "@/hooks/useChatsUnreadTotal";
 import { NavCountBadge } from "@/components/ui/NavCountBadge";
 
@@ -17,7 +17,9 @@ const navItems = [
 
 export function BottomNav({ className }: { className?: string }) {
   const { pathname } = useLocation();
-  const { data: pendingReceived = 0 } = usePendingReceivedOffersCount();
+  const { data: attention } = useOffersAttention();
+  const offersBadgeCount =
+    (attention?.pending_received ?? 0) + (attention?.unseen_rejected_sent ?? 0);
   const { data: chatsUnread = 0 } = useChatsUnreadTotal();
   // Re-render on route changes via `pathname`; highlight uses the real URL bar when in the browser.
   const path =
@@ -36,7 +38,7 @@ export function BottomNav({ className }: { className?: string }) {
     >
       {navItems.map((item) => {
         const isActive = item.id === activeId;
-        const offersPending = item.id === "offers" ? pendingReceived : 0;
+        const offersPending = item.id === "offers" ? offersBadgeCount : 0;
         const messagesUnread = item.id === "messages" ? chatsUnread : 0;
         return (
           <Link
@@ -45,7 +47,7 @@ export function BottomNav({ className }: { className?: string }) {
             aria-current={isActive ? "page" : undefined}
             aria-label={
               item.id === "offers" && offersPending > 0
-                ? `Offers, ${offersPending} pending`
+                ? `Offers, ${offersPending} need attention`
                 : item.id === "messages" && messagesUnread > 0
                   ? `Messages, ${messagesUnread} unread`
                   : undefined

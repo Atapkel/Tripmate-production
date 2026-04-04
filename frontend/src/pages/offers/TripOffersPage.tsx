@@ -36,6 +36,7 @@ export default function TripOffersPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.forTrip(id!) });
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.received });
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.mine });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.attention });
       queryClient.invalidateQueries({ queryKey: queryKeys.chats.mine });
       queryClient.invalidateQueries({
         queryKey: ["chats", "by-trip", Number(id)] as const,

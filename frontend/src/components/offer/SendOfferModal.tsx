@@ -27,6 +27,7 @@ export function SendOfferModal({ tripId, onClose }: SendOfferModalProps) {
     mutationFn: (data: OfferFormData) => offerService.create({ trip_vacancy_id: tripId, message: data.message }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.mine });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offers.attention });
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.received });
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.forTrip(tripId) });
       toast.success("Offer sent! The trip creator will review it.");

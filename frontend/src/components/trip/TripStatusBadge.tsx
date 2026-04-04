@@ -6,7 +6,8 @@ const variant: Record<string, "success" | "info" | "default" | "error"> = {
   matched: "info",
   closed: "default",
   cancelled: "error",
-  deleted_by_host: "error",
+  /** Muted so removed trips do not read as errors in lists. */
+  deleted_by_host: "default",
 };
 
 const labels: Record<string, string> = {
