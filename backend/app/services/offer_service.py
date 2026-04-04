@@ -101,15 +101,15 @@ class OfferService:
     async def get_offer_attention_counts(self, user_id: int) -> Tuple[int, int]:
         return await self.offer_repo.get_attention_counts(user_id)
 
-    async def acknowledge_rejected_offers_seen(
+    async def acknowledge_sent_offer_outcomes_seen(
         self, offerer_id: int
     ) -> Tuple[bool, Optional[Tuple[int, int]], Optional[str]]:
         try:
-            await self.offer_repo.mark_rejected_offers_seen_for_offerer(offerer_id)
+            await self.offer_repo.mark_outcome_offers_seen_for_offerer(offerer_id)
             counts = await self.offer_repo.get_attention_counts(offerer_id)
             return True, counts, None
         except Exception as e:
-            return False, None, f"Failed to acknowledge rejections: {str(e)}"
+            return False, None, f"Failed to acknowledge offer outcomes: {str(e)}"
 
     async def get_offers_for_trip_vacancy(
         self,

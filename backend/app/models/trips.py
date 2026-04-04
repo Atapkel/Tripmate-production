@@ -79,7 +79,7 @@ class Offer(Base):
     status = Column(String(20), default="pending", nullable=False)
 
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
-    offerer_rejection_seen_at = Column(DateTime(timezone=True), nullable=True)
+    offerer_outcome_seen_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 

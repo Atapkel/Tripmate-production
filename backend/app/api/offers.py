@@ -55,17 +55,17 @@ async def get_my_offer_attention(
     service = OfferService(db)
     pending, unseen = await service.get_offer_attention_counts(current_user.id)
     return OfferAttentionResponse(
-        pending_received=pending, unseen_rejected_sent=unseen
+        pending_received=pending, unseen_outcome_sent=unseen
     )
 
 
-@router.post("/me/acknowledge-rejected", response_model=OfferAttentionResponse)
-async def acknowledge_rejected_sent_offers(
+@router.post("/me/acknowledge-outcomes", response_model=OfferAttentionResponse)
+async def acknowledge_sent_offer_outcomes(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     service = OfferService(db)
-    success, counts, error = await service.acknowledge_rejected_offers_seen(
+    success, counts, error = await service.acknowledge_sent_offer_outcomes_seen(
         current_user.id
     )
     if not success or counts is None:
@@ -75,7 +75,7 @@ async def acknowledge_rejected_sent_offers(
         )
     pending, unseen = counts
     return OfferAttentionResponse(
-        pending_received=pending, unseen_rejected_sent=unseen
+        pending_received=pending, unseen_outcome_sent=unseen
     )
 
 

@@ -8,7 +8,7 @@ export interface Offer {
   proposed_budget?: number;
   status: string;
   reviewed_at?: string;
-  offerer_rejection_seen_at?: string | null;
+  offerer_outcome_seen_at?: string | null;
   created_at: string;
   updated_at: string;
   trip_vacancy?: Trip;
@@ -16,7 +16,7 @@ export interface Offer {
 
 export interface OfferAttention {
   pending_received: number;
-  unseen_rejected_sent: number;
+  unseen_outcome_sent: number;
 }
 
 export interface CreateOfferPayload {

@@ -116,8 +116,8 @@ class OfferRepository:
         offer.status = status
         if reviewed_at:
             offer.reviewed_at = reviewed_at
-        if status == "rejected":
-            offer.offerer_rejection_seen_at = None
+        if status in ("rejected", "accepted"):
+            offer.offerer_outcome_seen_at = None
         await self.db.commit()
         await self.db.refresh(offer)
         return offer
@@ -137,29 +137,29 @@ class OfferRepository:
         result = await self.db.execute(q)
         return int(result.scalar_one() or 0)
 
-    async def count_unseen_rejected_for_offerer(self, offerer_id: int) -> int:
+    async def count_unseen_outcome_for_offerer(self, offerer_id: int) -> int:
         q = select(func.count()).where(
             and_(
                 Offer.offerer_id == offerer_id,
-                Offer.status == "rejected",
-                Offer.offerer_rejection_seen_at.is_(None),
+                Offer.status.in_(["accepted", "rejected"]),
+                Offer.offerer_outcome_seen_at.is_(None),
             )
         )
         result = await self.db.execute(q)
         return int(result.scalar_one() or 0)
 
-    async def mark_rejected_offers_seen_for_offerer(self, offerer_id: int) -> int:
+    async def mark_outcome_offers_seen_for_offerer(self, offerer_id: int) -> int:
         now = datetime.now(timezone.utc)
         stmt = (
             update(Offer)
             .where(
                 and_(
                     Offer.offerer_id == offerer_id,
-                    Offer.status == "rejected",
-                    Offer.offerer_rejection_seen_at.is_(None),
+                    Offer.status.in_(["accepted", "rejected"]),
+                    Offer.offerer_outcome_seen_at.is_(None),
                 )
             )
-            .values(offerer_rejection_seen_at=now)
+            .values(offerer_outcome_seen_at=now)
         )
         result = await self.db.execute(stmt)
         await self.db.commit()
@@ -167,8 +167,8 @@ class OfferRepository:
 
     async def get_attention_counts(self, user_id: int) -> Tuple[int, int]:
         pending = await self.count_pending_received_for_requester(user_id)
-        unseen_rejected = await self.count_unseen_rejected_for_offerer(user_id)
-        return pending, unseen_rejected
+        unseen_outcome = await self.count_unseen_outcome_for_offerer(user_id)
+        return pending, unseen_outcome
 
     # ── DELETE ──────────────────────────────────────────────────────────
 

@@ -39,7 +39,7 @@ export function Sidebar({ className }: { className?: string }) {
   const settingsActive = isNavItemActive(pathname, ROUTES.SETTINGS, false);
   const { data: attention } = useOffersAttention();
   const offersBadgeCount =
-    (attention?.pending_received ?? 0) + (attention?.unseen_rejected_sent ?? 0);
+    (attention?.pending_received ?? 0) + (attention?.unseen_outcome_sent ?? 0);
   const { data: chatsUnread = 0 } = useChatsUnreadTotal();
 
   return (

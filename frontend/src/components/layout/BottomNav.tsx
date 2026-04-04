@@ -19,7 +19,7 @@ export function BottomNav({ className }: { className?: string }) {
   const { pathname } = useLocation();
   const { data: attention } = useOffersAttention();
   const offersBadgeCount =
-    (attention?.pending_received ?? 0) + (attention?.unseen_rejected_sent ?? 0);
+    (attention?.pending_received ?? 0) + (attention?.unseen_outcome_sent ?? 0);
   const { data: chatsUnread = 0 } = useChatsUnreadTotal();
   // Re-render on route changes via `pathname`; highlight uses the real URL bar when in the browser.
   const path =

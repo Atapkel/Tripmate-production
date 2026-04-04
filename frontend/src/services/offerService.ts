@@ -16,8 +16,8 @@ export const offerService = {
 
   getAttention: () => api.get<OfferAttention>("/offers/me/attention"),
 
-  acknowledgeRejectedSent: () =>
-    api.post<OfferAttention>("/offers/me/acknowledge-rejected"),
+  acknowledgeSentOutcomes: () =>
+    api.post<OfferAttention>("/offers/me/acknowledge-outcomes"),
 
   getReceived: (skip = 0, limit = 100) =>
     api.get<Offer[]>("/offers/received", { params: { skip, limit } }),

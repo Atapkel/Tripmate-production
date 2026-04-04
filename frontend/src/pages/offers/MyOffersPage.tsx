@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ROUTES } from "@/lib/constants";
-import { countPendingOffers, countUnseenRejectedSentOffers } from "@/lib/offersCounts";
+import { countPendingOffers, countUnseenOutcomeSentOffers } from "@/lib/offersCounts";
 
 export default function MyOffersPage() {
   const navigate = useNavigate();
@@ -36,8 +36,8 @@ export default function MyOffersPage() {
 
   const tabs = useMemo(() => {
     const sentPending = countPendingOffers(sentOffers);
-    const unseenRejected = countUnseenRejectedSentOffers(sentOffers);
-    const sentAttention = sentPending + unseenRejected;
+    const unseenOutcome = countUnseenOutcomeSentOffers(sentOffers);
+    const sentAttention = sentPending + unseenOutcome;
     const receivedPending = countPendingOffers(receivedOffers);
     return [
       { key: "sent", label: "Sent", count: sentAttention > 0 ? sentAttention : undefined },
@@ -45,8 +45,8 @@ export default function MyOffersPage() {
     ];
   }, [sentOffers, receivedOffers]);
 
-  const ackRejectedMutation = useMutation({
-    mutationFn: () => offerService.acknowledgeRejectedSent(),
+  const ackOutcomesMutation = useMutation({
+    mutationFn: () => offerService.acknowledgeSentOutcomes(),
     onSuccess: (res) => {
       queryClient.setQueryData(queryKeys.offers.attention, res.data);
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.mine });
@@ -55,10 +55,10 @@ export default function MyOffersPage() {
 
   useEffect(() => {
     if (activeTab !== "sent" || !sentOffers?.length) return;
-    if (countUnseenRejectedSentOffers(sentOffers) < 1) return;
-    if (ackRejectedMutation.isPending) return;
-    ackRejectedMutation.mutate();
-  }, [activeTab, sentOffers, ackRejectedMutation.isPending]);
+    if (countUnseenOutcomeSentOffers(sentOffers) < 1) return;
+    if (ackOutcomesMutation.isPending) return;
+    ackOutcomesMutation.mutate();
+  }, [activeTab, sentOffers, ackOutcomesMutation.isPending]);
 
   const cancelMutation = useMutation({
     mutationFn: (id: number) => offerService.cancel(id),
