@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.models.chat.groups import ChatGroup
 from app.models.chat.members import ChatMember
 from app.models.trips import TripVacancy
+from app.models.users import User
 
 
 class ChatMemberRepository:
@@ -48,7 +49,7 @@ class ChatMemberRepository:
         query = (
             select(ChatMember)
             .filter(ChatMember.chat_group_id == chat_group_id)
-            .options(selectinload(ChatMember.user))
+            .options(selectinload(ChatMember.user).selectinload(User.profile))
             .order_by(ChatMember.joined_at.asc())
             .offset(skip)
             .limit(limit)

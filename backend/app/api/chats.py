@@ -265,6 +265,7 @@ async def websocket_chat(
 
     try:
         sender_name = None
+        sender_photo = None
         async with AsyncSessionLocal() as db:
             authenticated_user = await get_user_from_websocket_token(token, db)
             if not authenticated_user:
@@ -289,6 +290,7 @@ async def websocket_chat(
             profile = await profile_repo.get_by_user_id(user_id)
             if profile:
                 sender_name = f"{profile.first_name} {profile.last_name}"
+                sender_photo = profile.profile_photo
 
         await manager.connect(websocket, chat_group_id, user_id)
 
@@ -326,6 +328,7 @@ async def websocket_chat(
                             "chat_group_id": saved_msg.chat_group_id,
                             "sender_id": saved_msg.sender_id,
                             "sender_name": sender_name,
+                            "sender_photo": sender_photo,
                             "content": saved_msg.content,
                             "created_at": saved_msg.created_at.isoformat(),
                         }
