@@ -1,0 +1,141 @@
+# Local full stack in Docker: Postgres, Redis, FastAPI (:8000), SPA via Nginx (:8080).
+#
+# Usage:
+#   docker compose -f docker-compose.local.yml up -d --build
+#
+# Open: http://localhost:8080  (frontend)   http://localhost:8000/docs  (API)
+#
+# DB/Redis on the host (optional): ports 5432 / 6379 still published.
+# Backend container always uses DB_HOST=db and REDIS_HOST=redis (Compose service names),
+# overriding values from backend/.env so the same .env works for Docker and for host uv run.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tripmate-local-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tripmate_db}
+      POSTGRES_USER: ${DB_USER:-tripmate}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tripmate_password}
+    ports:
+      - "${LOCAL_DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tripmate} -d ${DB_NAME:-tripmate_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: tripmate-local-redis
+    restart: unless-stopped
+    ports:
+      - "${LOCAL_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata_local:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tripmate-local-backend
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    ports:
+      - "${LOCAL_API_PORT:-8000}:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+    volumes:
+      - uploads_local:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_WS_BASE_URL: ""
+        VITE_APP_NAME: TripMate
+    container_name: tripmate-local-frontend
+    restart: unless-stopped
+    ports:
+      - "${LOCAL_WEB_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:80/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    # Skip SSL/certbot entrypoint: serve SPA + proxy /api to backend on plain HTTP.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /etc/nginx/conf.d/default.conf <<'EOF'
+        server {
+            listen 80;
+            server_name localhost;
+            client_max_body_size 10m;
+            root /usr/share/nginx/html;
+            index index.html;
+            location /healthz {
+                return 200 'ok';
+                add_header Content-Type text/plain;
+            }
+            location /api/ {
+                proxy_pass http://backend:8000;
+                proxy_set_header Host $$host;
+                proxy_set_header X-Real-IP $$remote_addr;
+                proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $$scheme;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $$http_upgrade;
+                proxy_set_header Connection "upgrade";
+                proxy_read_timeout 86400;
+            }
+            location /health {
+                proxy_pass http://backend:8000;
+                proxy_set_header Host $$host;
+            }
+            location ^~ /uploads/ {
+                proxy_pass http://backend:8000;
+                proxy_set_header Host $$host;
+            }
+            location / {
+                try_files $$uri $$uri/ /index.html;
+            }
+        }
+        EOF
+        exec nginx -g "daemon off;"
+
+volumes:
+  pgdata_local:
+  redisdata_local:
+  uploads_local:
