@@ -52,9 +52,29 @@ async def get_my_chat_groups(
             updated_at=g.updated_at,
             unread_count=n,
             trip_status=_chat_trip_status(g),
+            trip_removal_unseen=ru,
         )
-        for g, n in rows
+        for g, n, ru in rows
     ]
+
+
+@router.post(
+    "/me/acknowledge-trip-removals",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def acknowledge_trip_removals(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = ChatService(db)
+    success, error = await service.acknowledge_deleted_trip_removals(current_user.id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error or "Failed to acknowledge",
+        )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post(
@@ -86,6 +106,7 @@ async def get_chat_group(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
     unread = await service.get_unread_count_for_user(chat_group_id, current_user.id)
+    removal_unseen = await service.trip_removal_unseen_for_user(group, current_user.id)
     return ChatGroupResponse(
         id=group.id,
         trip_vacancy_id=group.trip_vacancy_id,
@@ -94,6 +115,7 @@ async def get_chat_group(
         updated_at=group.updated_at,
         unread_count=unread,
         trip_status=_chat_trip_status(group),
+        trip_removal_unseen=removal_unseen,
     )
 
 
@@ -111,6 +133,7 @@ async def get_chat_group_by_trip(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
     unread = await service.get_unread_count_for_user(group.id, current_user.id)
+    removal_unseen = await service.trip_removal_unseen_for_user(group, current_user.id)
     return ChatGroupResponse(
         id=group.id,
         trip_vacancy_id=group.trip_vacancy_id,
@@ -119,6 +142,7 @@ async def get_chat_group_by_trip(
         updated_at=group.updated_at,
         unread_count=unread,
         trip_status=_chat_trip_status(group),
+        trip_removal_unseen=removal_unseen,
     )
 
 

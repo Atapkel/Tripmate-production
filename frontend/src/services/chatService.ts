@@ -32,4 +32,7 @@ export const chatService = {
 
   markRead: (chatId: number | string) =>
     api.post<void>(`/chats/${chatId}/read`),
+
+  acknowledgeTripRemovals: () =>
+    api.post<void>("/chats/me/acknowledge-trip-removals"),
 };

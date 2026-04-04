@@ -8,6 +8,8 @@ export interface ChatGroup {
   unread_count?: number;
   /** Linked trip vacancy status (e.g. deleted_by_host). */
   trip_status?: string | null;
+  /** True until the user opens this chat or the Archive tab (new host removal). */
+  trip_removal_unseen?: boolean;
 }
 
 export interface ChatMember {

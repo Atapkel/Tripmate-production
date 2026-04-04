@@ -63,14 +63,24 @@ class ChatService:
         except Exception as e:
             return False, None, f"Failed to get chat group: {str(e)}"
 
+    async def trip_removal_unseen_for_user(self, group: ChatGroup, user_id: int) -> bool:
+        vac = group.trip_vacancy
+        if vac is None or vac.status != "deleted_by_host":
+            return False
+        member = await self.chat_member_repo.get_by_chat_and_user(group.id, user_id)
+        if not member:
+            return False
+        return member.trip_removal_seen_at is None
+
     async def get_my_chat_groups(
         self, user_id: int, skip: int = 0, limit: int = 100
-    ) -> List[Tuple[ChatGroup, int]]:
+    ) -> List[Tuple[ChatGroup, int, bool]]:
         groups = await self.chat_group_repo.get_user_chat_groups(user_id, skip, limit)
-        out: List[Tuple[ChatGroup, int]] = []
+        out: List[Tuple[ChatGroup, int, bool]] = []
         for g in groups:
             unread = await self.get_unread_count_for_user(g.id, user_id)
-            out.append((g, unread))
+            removal_unseen = await self.trip_removal_unseen_for_user(g, user_id)
+            out.append((g, unread, removal_unseen))
         return out
 
     async def get_unread_count_for_user(self, chat_group_id: int, user_id: int) -> int:
@@ -94,9 +104,26 @@ class ChatService:
             await self.chat_member_repo.set_last_read_message_id(
                 chat_group_id, user_id, max_id
             )
+            chat_group = await self.chat_group_repo.get_by_id(chat_group_id)
+            if chat_group and chat_group.trip_vacancy:
+                if chat_group.trip_vacancy.status == "deleted_by_host":
+                    await self.chat_member_repo.mark_trip_removal_seen(
+                        chat_group_id, user_id
+                    )
             return True, None
         except Exception as e:
             return False, f"Failed to mark chat read: {str(e)}"
+
+    async def acknowledge_deleted_trip_removals(
+        self, user_id: int
+    ) -> Tuple[bool, Optional[str]]:
+        try:
+            await self.chat_member_repo.acknowledge_deleted_trip_removals_for_user(
+                user_id
+            )
+            return True, None
+        except Exception as e:
+            return False, f"Failed to acknowledge: {str(e)}"
 
     # ── MEMBER OPERATIONS ───────────────────────────────────────────────
 

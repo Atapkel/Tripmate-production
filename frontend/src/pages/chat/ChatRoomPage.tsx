@@ -12,7 +12,6 @@ import { MessageBubble } from "@/components/chat/MessageBubble";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { Spinner } from "@/components/ui/Spinner";
-import { ROUTES } from "@/lib/constants";
 import { formatMessageDate } from "@/lib/formatters";
 
 export default function ChatRoomPage() {
@@ -94,7 +93,12 @@ export default function ChatRoomPage() {
     <div className="flex flex-col h-[calc(100dvh-64px)] lg:h-[calc(100dvh-73px)]">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface">
-        <button onClick={() => navigate(ROUTES.CHATS)} className="lg:hidden p-1 rounded-lg hover:bg-surface-tertiary">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="lg:hidden p-1 rounded-lg hover:bg-surface-tertiary"
+          aria-label="Go back"
+        >
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="flex-1">

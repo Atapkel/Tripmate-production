@@ -238,6 +238,10 @@ class TripVacancyService:
                     )
 
             await self.trip_vacancy_repo.update_status(trip_vacancy_id, "deleted_by_host")
+            if chat_group:
+                await self.chat_member_repo.reset_trip_removal_seen_for_members_after_host_removal(
+                    chat_group.id, requester_id
+                )
             return True, None
         except Exception as e:
             return False, f"Failed to remove trip vacancy: {str(e)}"

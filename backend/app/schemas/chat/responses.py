@@ -12,6 +12,7 @@ class ChatGroupResponse(BaseModel):
     updated_at: datetime
     unread_count: int = 0
     trip_status: Optional[str] = None
+    trip_removal_unseen: bool = False
 
     class Config:
         from_attributes = True

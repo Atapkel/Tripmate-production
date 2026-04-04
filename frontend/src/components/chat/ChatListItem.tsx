@@ -12,6 +12,10 @@ interface ChatListItemProps {
 }
 
 export function ChatListItem({ chat, isActive, onClick, unreadCount }: ChatListItemProps) {
+  const unread = unreadCount ?? chat.unread_count ?? 0;
+  const removalUnseen = !!chat.trip_removal_unseen;
+  const badgeCount = Math.max(unread, removalUnseen ? 1 : 0);
+
   return (
     <button
       onClick={onClick}
@@ -37,9 +41,9 @@ export function ChatListItem({ chat, isActive, onClick, unreadCount }: ChatListI
           </span>
         </div>
       </div>
-      {!!unreadCount && unreadCount > 0 && (
+      {badgeCount > 0 && (
         <span className="shrink-0 bg-primary-600 text-white text-xs rounded-full h-5 min-w-[20px] flex items-center justify-center px-1">
-          {unreadCount}
+          {badgeCount > 99 ? "99+" : badgeCount}
         </span>
       )}
     </button>

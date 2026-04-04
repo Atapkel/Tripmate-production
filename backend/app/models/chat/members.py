@@ -15,6 +15,7 @@ class ChatMember(Base):
     last_read_message_id = Column(
         Integer, ForeignKey("messages.id", ondelete="SET NULL"), nullable=True
     )
+    trip_removal_seen_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     chat_group = relationship("ChatGroup", back_populates="members")
