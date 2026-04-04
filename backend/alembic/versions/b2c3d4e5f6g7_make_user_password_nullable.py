@@ -1,7 +1,7 @@
 """make user password nullable for oauth
 
 Revision ID: b2c3d4e5f6g7
-Revises: a1b2c3d4e5f6
+Revises: g7b8c9d0e1f2
 Create Date: 2026-04-04
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "b2c3d4e5f6g7"
-down_revision: Union[str, None] = "a1b2c3d4e5f6"
+down_revision: Union[str, None] = "g7b8c9d0e1f2"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
