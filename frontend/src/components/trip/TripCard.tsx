@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { MapPin, Calendar, Banknote, Users } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { TripStatusBadge } from "@/components/trip/TripStatusBadge";
 import { formatDateRange, formatBudgetRange, formatAgeRange } from "@/lib/formatters";
 import { ROUTES } from "@/lib/constants";
 import type { Trip } from "@/types/trip";
@@ -13,22 +13,13 @@ interface TripCardProps {
 export function TripCard({ trip }: TripCardProps) {
   const navigate = useNavigate();
 
-  const statusVariant = {
-    open: "success" as const,
-    matched: "info" as const,
-    closed: "default" as const,
-    cancelled: "error" as const,
-  };
-
   return (
     <Card hoverable onClick={() => navigate(ROUTES.TRIP_DETAIL(trip.id))}>
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between gap-2 mb-3">
         <h3 className="text-base font-heading font-bold text-text-primary">
           {trip.destination_city?.name || "Unknown"}, {trip.destination_country?.name || ""}
         </h3>
-        <Badge variant={statusVariant[trip.status as keyof typeof statusVariant] || "default"}>
-          {trip.status}
-        </Badge>
+        <TripStatusBadge status={trip.status} className="shrink-0" />
       </div>
 
       <div className="space-y-2 text-sm text-text-secondary mb-3">
@@ -42,7 +33,7 @@ export function TripCard({ trip }: TripCardProps) {
         </div>
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 text-blue-400" />
-          <span>{formatAgeRange(trip.min_age, trip.max_age)} · {trip.gender_preference || "Any gender"}</span>
+          <span>{formatAgeRange(trip.min_age, trip.max_age)} · {trip.male_needed != null && trip.female_needed != null ? `${trip.male_needed}M / ${trip.female_needed}F` : "Any gender"}{trip.nationality_preference ? ` · ${trip.nationality_preference.name}` : ""}</span>
         </div>
       </div>
 

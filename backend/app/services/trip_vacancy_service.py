@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import List, Optional, Tuple
 
 from sqlalchemy import select
@@ -9,6 +9,8 @@ from app.models.locations import City
 from app.models.trips import TripVacancy
 from app.repositories.chat_group_repository import ChatGroupRepository
 from app.repositories.chat_member_repository import ChatMemberRepository
+from app.repositories.message_repository import MessageRepository
+from app.repositories.offer_repository import OfferRepository
 from app.repositories.trip_vacancy_repository import TripVacancyRepository
 
 logger = logging.getLogger(__name__)
@@ -20,6 +22,8 @@ class TripVacancyService:
         self.trip_vacancy_repo = TripVacancyRepository(db)
         self.chat_group_repo = ChatGroupRepository(db)
         self.chat_member_repo = ChatMemberRepository(db)
+        self.message_repo = MessageRepository(db)
+        self.offer_repo = OfferRepository(db)
 
     # ── VALIDATION ──────────────────────────────────────────────────────
 
@@ -34,10 +38,16 @@ class TripVacancyService:
 
     # ── CREATE ──────────────────────────────────────────────────────────
 
+    MAX_ACTIVE_TRIPS = 5
+
     async def create_trip_vacancy(
         self, requester_id: int, **data
     ) -> Tuple[bool, Optional[TripVacancy], Optional[str]]:
         try:
+            active_count = await self.trip_vacancy_repo.count_active_by_requester(requester_id)
+            if active_count >= self.MAX_ACTIVE_TRIPS:
+                return False, None, f"You can have at most {self.MAX_ACTIVE_TRIPS} active trips at a time"
+
             error = await self._validate_city_country(
                 data["destination_city_id"], data["destination_country_id"]
             )
@@ -46,6 +56,8 @@ class TripVacancyService:
 
             start_date = data.get("start_date")
             end_date = data.get("end_date")
+            if start_date and start_date < date.today():
+                return False, None, "Start date cannot be in the past"
             if start_date and end_date and start_date >= end_date:
                 return False, None, "End date must be after start date"
 
@@ -58,6 +70,18 @@ class TripVacancyService:
             max_age = data.get("max_age")
             if min_age is not None and max_age is not None and min_age > max_age:
                 return False, None, "Max age must be greater than or equal to min age"
+
+            # Validate gender split
+            male_needed = data.get("male_needed")
+            female_needed = data.get("female_needed")
+            people_needed = data.get("people_needed")
+            if male_needed is not None and female_needed is not None:
+                if male_needed + female_needed != people_needed:
+                    return False, None, "Male needed + female needed must equal people needed"
+            elif male_needed is not None and female_needed is None:
+                return False, None, "Please specify both male and female counts, or leave both empty for any gender"
+            elif male_needed is None and female_needed is not None:
+                return False, None, "Please specify both male and female counts, or leave both empty for any gender"
 
             trip_vacancy = await self.trip_vacancy_repo.create(
                 requester_id=requester_id, **data
@@ -103,7 +127,8 @@ class TripVacancyService:
         max_age: Optional[int] = None,
         min_budget: Optional[float] = None,
         max_budget: Optional[float] = None,
-        gender_preference: Optional[str] = None,
+        gender: Optional[str] = None,
+        nationality_preference_id: Optional[int] = None,
         from_city: Optional[str] = None,
         from_country: Optional[str] = None,
     ) -> List[TripVacancy]:
@@ -122,7 +147,8 @@ class TripVacancyService:
             max_age=max_age,
             min_budget=min_budget,
             max_budget=max_budget,
-            gender_preference=gender_preference,
+            gender=gender,
+            nationality_preference_id=nationality_preference_id,
             from_city=from_city,
             from_country=from_country,
         )
@@ -138,6 +164,8 @@ class TripVacancyService:
                 return False, None, "Trip vacancy not found"
             if trip_vacancy.requester_id != requester_id:
                 return False, None, "You don't have permission to update this trip vacancy"
+            if trip_vacancy.status == "deleted_by_host":
+                return False, None, "Cannot update a trip that was removed by the organizer"
 
             update_data = {k: v for k, v in update_data.items() if v is not None}
             if not update_data:
@@ -171,6 +199,31 @@ class TripVacancyService:
             if mn_age is not None and mx_age is not None and mn_age > mx_age:
                 return False, None, "Max age must be greater than or equal to min age"
 
+            # Validate gender split
+            new_male = update_data.get("male_needed", trip_vacancy.male_needed)
+            new_female = update_data.get("female_needed", trip_vacancy.female_needed)
+            effective_people = update_data.get("people_needed", trip_vacancy.people_needed)
+            if new_male is not None and new_female is not None:
+                if new_male + new_female != effective_people:
+                    return False, None, "Male needed + female needed must equal people needed"
+            elif (new_male is None) != (new_female is None):
+                return False, None, "Please specify both male and female counts, or leave both empty for any gender"
+
+            # Validate people_needed vs people_joined
+            new_people_needed = update_data.get("people_needed")
+            if new_people_needed is not None:
+                if new_people_needed < trip_vacancy.people_joined:
+                    return (
+                        False,
+                        None,
+                        f"People needed cannot be less than people already joined ({trip_vacancy.people_joined})",
+                    )
+                # Auto-adjust status based on capacity
+                if new_people_needed > trip_vacancy.people_joined and trip_vacancy.status == "matched":
+                    update_data["status"] = "open"
+                elif new_people_needed == trip_vacancy.people_joined and trip_vacancy.status == "open":
+                    update_data["status"] = "matched"
+
             updated = await self.trip_vacancy_repo.update(trip_vacancy_id, **update_data)
             return True, updated, None
         except Exception as e:
@@ -184,6 +237,8 @@ class TripVacancyService:
             return False, None, "Trip vacancy not found"
         if trip_vacancy.requester_id != requester_id:
             return False, None, "You don't have permission to update this trip vacancy"
+        if trip_vacancy.status == "deleted_by_host":
+            return False, None, "Cannot change status of a removed trip"
 
         valid_statuses = ("open", "matched", "closed", "cancelled")
         if status not in valid_statuses:
@@ -197,15 +252,43 @@ class TripVacancyService:
     async def delete_trip_vacancy(
         self, trip_vacancy_id: int, requester_id: int
     ) -> Tuple[bool, Optional[str]]:
+        """Soft-delete: status deleted_by_host, chat and messages kept; system TripMate notice."""
         try:
             trip_vacancy = await self.trip_vacancy_repo.get_by_id(trip_vacancy_id)
             if not trip_vacancy:
                 return False, "Trip vacancy not found"
             if trip_vacancy.requester_id != requester_id:
                 return False, "You don't have permission to delete this trip vacancy"
+            if trip_vacancy.status == "deleted_by_host":
+                return False, "Trip is already removed"
 
-            if not await self.trip_vacancy_repo.delete(trip_vacancy_id):
-                return False, "Failed to delete trip vacancy"
+            chat_group = await self.chat_group_repo.get_by_trip_vacancy_id(trip_vacancy_id)
+            if chat_group:
+                notice = (
+                    f'TripMate: The trip "{chat_group.name}" was removed by the organizer. '
+                    "This chat stays open so you can read past messages. "
+                    "New messages are disabled."
+                )
+                await self.message_repo.create(chat_group.id, None, notice)
+                # chat_groups.updated_at is TIMESTAMP WITHOUT TIME ZONE; asyncpg rejects tz-aware datetimes.
+                await self.chat_group_repo.update(
+                    chat_group,
+                    updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                )
+
+            offers = await self.offer_repo.get_by_trip_vacancy_id(trip_vacancy_id)
+            now = datetime.now(timezone.utc)
+            for offer in offers:
+                if offer.status in ("pending", "accepted"):
+                    await self.offer_repo.update_status(
+                        offer, "cancelled", reviewed_at=now
+                    )
+
+            await self.trip_vacancy_repo.update_status(trip_vacancy_id, "deleted_by_host")
+            if chat_group:
+                await self.chat_member_repo.reset_trip_removal_seen_for_members_after_host_removal(
+                    chat_group.id, requester_id
+                )
             return True, None
         except Exception as e:
-            return False, f"Failed to delete trip vacancy: {str(e)}"
+            return False, f"Failed to remove trip vacancy: {str(e)}"

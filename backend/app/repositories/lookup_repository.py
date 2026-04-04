@@ -3,7 +3,7 @@ from typing import List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.locations import City, Country
+from app.models.locations import City, Country, Nationality
 from app.models.preferences import Interest, Language, TravelStyle
 
 
@@ -31,4 +31,9 @@ class LookupRepository:
 
     async def get_all_travel_styles(self) -> List[TravelStyle]:
         result = await self.db.execute(select(TravelStyle))
+        return list(result.scalars().all())
+
+    async def get_all_nationalities(self) -> List[Nationality]:
+        query = select(Nationality).order_by(Nationality.name)
+        result = await self.db.execute(query)
         return list(result.scalars().all())

@@ -15,6 +15,14 @@ class TripVacancyRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def count_active_by_requester(self, requester_id: int) -> int:
+        query = select(func.count()).select_from(TripVacancy).filter(
+            TripVacancy.requester_id == requester_id,
+            TripVacancy.status == "open",
+        )
+        result = await self.db.execute(query)
+        return result.scalar_one()
+
     # ── CREATE ──────────────────────────────────────────────────────────
 
     async def create(self, requester_id: int, **kwargs) -> TripVacancy:
@@ -68,7 +76,8 @@ class TripVacancyRepository:
         max_age: Optional[int] = None,
         min_budget: Optional[float] = None,
         max_budget: Optional[float] = None,
-        gender_preference: Optional[str] = None,
+        gender: Optional[str] = None,
+        nationality_preference_id: Optional[int] = None,
         from_city: Optional[str] = None,
         from_country: Optional[str] = None,
     ) -> List[TripVacancy]:
@@ -116,11 +125,26 @@ class TripVacancyRepository:
                 (TripVacancy.min_budget.is_(None)) | (TripVacancy.min_budget <= max_budget)
             )
 
-        if gender_preference:
-            gender_lower = gender_preference.lower()
+        # Gender filter: show trips that have available slots for this gender
+        if gender:
+            gender_lower = gender.lower()
+            if gender_lower == "male":
+                # Show trips that accept males: male_needed > male_joined, or any-gender (both null)
+                query = query.filter(
+                    (TripVacancy.male_needed.is_(None) & TripVacancy.female_needed.is_(None))
+                    | (TripVacancy.male_needed > TripVacancy.male_joined)
+                )
+            elif gender_lower == "female":
+                query = query.filter(
+                    (TripVacancy.male_needed.is_(None) & TripVacancy.female_needed.is_(None))
+                    | (TripVacancy.female_needed > TripVacancy.female_joined)
+                )
+
+        # Nationality preference filter
+        if nationality_preference_id is not None:
             query = query.filter(
-                (func.lower(TripVacancy.gender_preference) == "any")
-                | (func.lower(TripVacancy.gender_preference) == gender_lower)
+                (TripVacancy.nationality_preference_id.is_(None))
+                | (TripVacancy.nationality_preference_id == nationality_preference_id)
             )
 
         # Origin location filters via aliased profile tables

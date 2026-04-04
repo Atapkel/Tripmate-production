@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models.locations import City, Country
+from app.models.locations import City, Country, Nationality
 from app.models.preferences import Interest, Language, TravelStyle
 
 
@@ -165,6 +165,31 @@ async def populate_countries_and_cities():
         print(f"Added {len(countries_with_cities)} countries and {total_cities} cities")
 
 
+async def populate_nationalities():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Nationality))
+        if result.scalars().first():
+            print("Nationalities already populated. Skipping...")
+            return
+
+        nationalities = [
+            "Kazakh", "Uzbek", "Kyrgyz", "Tajik", "Turkish","Russian",
+            "Turkmen", "Arab", "Chinese", "Korean",
+            "Japanese", "Indian", "Pakistani", "Iranian", "Afghan",
+            "Mongolian", "Georgian", "Azerbaijani", "Armenian", "Ukrainian",
+            "Belarusian", "American", "British", "German", "French",
+            "Italian", "Spanish", "Brazilian", "Malaysian", "Indonesian",
+            "Thai", "Vietnamese", "Filipino", "Egyptian", "Nigerian",
+            "South African", "Canadian", "Australian", "Mexican", "Other",
+        ]
+
+        for name in nationalities:
+            session.add(Nationality(name=name))
+
+        await session.commit()
+        print(f"Added {len(nationalities)} nationalities")
+
+
 async def main():
     print("Populating database with initial data...")
     print("-" * 50)
@@ -173,6 +198,7 @@ async def main():
     await populate_languages()
     await populate_interests()
     await populate_travel_styles()
+    await populate_nationalities()
 
     print("-" * 50)
     print("Database population complete!")

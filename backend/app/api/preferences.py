@@ -7,7 +7,7 @@ from app.api.dependencies import get_current_user
 from app.core.database import get_db
 from app.models.users import User
 from app.schemas.common import MessageResponse
-from app.schemas.locations import CityResponse, CountryResponse
+from app.schemas.locations import CityResponse, CountryResponse, NationalityResponse
 from app.schemas.preferences import (
     InterestBase,
     InterestResponse,
@@ -203,3 +203,9 @@ async def get_all_interests(db: AsyncSession = Depends(get_db)):
 async def get_all_travel_styles(db: AsyncSession = Depends(get_db)):
     service = ProfilePreferencesService(db)
     return await service.get_all_travel_styles()
+
+
+@options_router.get("/nationalities", response_model=List[NationalityResponse])
+async def get_all_nationalities(db: AsyncSession = Depends(get_db)):
+    service = ProfilePreferencesService(db)
+    return await service.get_all_nationalities()

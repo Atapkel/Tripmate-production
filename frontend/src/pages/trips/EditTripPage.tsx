@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,11 +18,13 @@ import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { ROUTES } from "@/lib/constants";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function EditTripPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [genderMode, setGenderMode] = useState<"any" | "specific">("any");
 
   const { data: trip, isLoading } = useQuery({
     queryKey: queryKeys.trips.detail(id!),
@@ -34,8 +36,12 @@ export default function EditTripPage() {
     resolver: zodResolver(tripSchema),
   });
 
+  const initialized = useRef(false);
   useEffect(() => {
-    if (trip) {
+    if (trip && !initialized.current) {
+      initialized.current = true;
+      const hasGenderSplit = trip.male_needed != null && trip.female_needed != null;
+      setGenderMode(hasGenderSplit ? "specific" : "any");
       reset({
         destination_country_id: trip.destination_country_id,
         destination_city_id: trip.destination_city_id,
@@ -46,7 +52,9 @@ export default function EditTripPage() {
         people_needed: trip.people_needed,
         min_age: trip.min_age,
         max_age: trip.max_age,
-        gender_preference: trip.gender_preference || "any",
+        male_needed: trip.male_needed ?? null,
+        female_needed: trip.female_needed ?? null,
+        nationality_preference_id: trip.nationality_preference_id ?? null,
         description: trip.description || "",
       });
     }
@@ -54,12 +62,21 @@ export default function EditTripPage() {
 
   const destCountryId = watch("destination_country_id");
   const description = watch("description") || "";
+  const peopleNeeded = watch("people_needed") || 1;
 
   const { data: countries } = useQuery({ queryKey: queryKeys.options.countries, queryFn: () => optionsService.getCountries().then((r) => r.data) });
   const { data: destCities } = useQuery({ queryKey: queryKeys.options.cities(destCountryId), queryFn: () => optionsService.getCities(destCountryId).then((r) => r.data), enabled: !!destCountryId });
+  const { data: nationalities } = useQuery({ queryKey: queryKeys.options.nationalities, queryFn: () => optionsService.getNationalities().then((r) => r.data) });
 
   const updateMutation = useMutation({
-    mutationFn: (data: TripFormData) => tripService.update(id!, data),
+    mutationFn: (data: TripFormData) => {
+      const payload = { ...data };
+      if (genderMode === "any") {
+        payload.male_needed = null;
+        payload.female_needed = null;
+      }
+      return tripService.update(id!, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.trips.detail(id!) });
       queryClient.invalidateQueries({ queryKey: queryKeys.trips.all });
@@ -70,6 +87,18 @@ export default function EditTripPage() {
   });
 
   if (isLoading) return <PageContainer><div className="flex justify-center py-12"><Spinner size="lg" /></div></PageContainer>;
+
+  if (trip?.status === "deleted_by_host") {
+    return (
+      <PageContainer>
+        <EmptyState
+          title="Trip was removed"
+          description="This trip is no longer editable."
+          action={<Button onClick={() => navigate(ROUTES.TRIP_DETAIL(id!))}>View trip</Button>}
+        />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -100,7 +129,28 @@ export default function EditTripPage() {
               <Input id="max_budget" label="Max Budget" type="number" min={0} error={errors.max_budget?.message} {...register("max_budget", { valueAsNumber: true })} />
             </div>
           </div>
-          <Input id="people_needed" label="People Needed" type="number" min={1} error={errors.people_needed?.message} {...register("people_needed", { valueAsNumber: true })} />
+          <Input id="people_needed" label="People Needed" type="number" min={1} max={20} error={errors.people_needed?.message} {...register("people_needed", { valueAsNumber: true })} />
+
+          <div>
+            <label className="block text-sm font-semibold text-text-primary mb-2">Gender Distribution</label>
+            <div className="flex gap-4 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="gender_mode" checked={genderMode === "any"} onChange={() => { setGenderMode("any"); setValue("male_needed", null); setValue("female_needed", null); }} className="accent-primary-600" />
+                <span className="text-sm text-text-secondary">Any gender</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="gender_mode" checked={genderMode === "specific"} onChange={() => { setGenderMode("specific"); setValue("male_needed", 0); setValue("female_needed", peopleNeeded); }} className="accent-primary-600" />
+                <span className="text-sm text-text-secondary">Specific counts</span>
+              </label>
+            </div>
+            {genderMode === "specific" && (
+              <div className="grid grid-cols-2 gap-3">
+                <Input id="male_needed" label="Males" type="number" min={0} max={20} error={errors.male_needed?.message} {...register("male_needed", { valueAsNumber: true })} />
+                <Input id="female_needed" label="Females" type="number" min={0} max={20} error={errors.female_needed?.message} {...register("female_needed", { valueAsNumber: true })} />
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-semibold text-text-primary mb-1.5">Age Range</label>
             <div className="grid grid-cols-2 gap-3">
@@ -108,7 +158,18 @@ export default function EditTripPage() {
               <Input id="max_age" label="Max Age" type="number" min={16} max={100} error={errors.max_age?.message} {...register("max_age", { valueAsNumber: true })} />
             </div>
           </div>
-          <Select id="gender_preference" label="Gender Preference" options={[{ value: "any", label: "Any" }, { value: "male", label: "Male" }, { value: "female", label: "Female" }]} {...register("gender_preference")} />
+
+          <Controller name="nationality_preference_id" control={control} render={({ field }) => (
+            <Select
+              id="nationality_preference"
+              label="Nationality Preference"
+              placeholder="Any nationality"
+              options={(nationalities || []).map((n) => ({ value: n.id, label: n.name }))}
+              value={field.value || ""}
+              onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+            />
+          )} />
+
           <Textarea id="description" label="Description" rows={4} showCount maxLength={2000} currentLength={description.length} error={errors.description?.message} {...register("description")} />
           <div className="flex gap-3">
             <Button type="button" variant="outline" fullWidth onClick={() => navigate(-1)}>Cancel</Button>

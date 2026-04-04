@@ -21,3 +21,10 @@ class City(Base):
     country_id = Column(Integer, ForeignKey("countries.id", ondelete="CASCADE"), nullable=False, index=True)
 
     country = relationship("Country", back_populates="cities")
+
+
+class Nationality(Base):
+    __tablename__ = "nationalities"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), unique=True, nullable=False)

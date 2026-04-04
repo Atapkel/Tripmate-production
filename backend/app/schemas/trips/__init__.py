@@ -5,7 +5,12 @@ from app.schemas.trips.requests import (
     TripVacancyCreateRequest,
     TripVacancyUpdateRequest,
 )
-from app.schemas.trips.responses import OfferResponse, OfferWithTripResponse, TripVacancyResponse
+from app.schemas.trips.responses import (
+    OfferAttentionResponse,
+    OfferResponse,
+    OfferWithTripResponse,
+    TripVacancyResponse,
+)
 
 __all__ = [
     "TripVacancyCreateRequest",
@@ -14,6 +19,7 @@ __all__ = [
     "OfferUpdateRequest",
     "OfferStatusUpdateRequest",
     "TripVacancyResponse",
+    "OfferAttentionResponse",
     "OfferResponse",
     "OfferWithTripResponse",
 ]

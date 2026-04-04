@@ -18,6 +18,7 @@ export const queryKeys = {
   },
   offers: {
     mine: ["offers", "mine"] as const,
+    attention: ["offers", "attention"] as const,
     received: ["offers", "received"] as const,
     forTrip: (tripId: number | string) => ["offers", "trip", tripId] as const,
     detail: (id: number | string) => ["offers", id] as const,
@@ -34,5 +35,6 @@ export const queryKeys = {
     languages: ["options", "languages"] as const,
     interests: ["options", "interests"] as const,
     travelStyles: ["options", "travel-styles"] as const,
+    nationalities: ["options", "nationalities"] as const,
   },
 };

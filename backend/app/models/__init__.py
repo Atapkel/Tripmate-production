@@ -1,5 +1,5 @@
 # Locations
-from app.models.locations import Country, City
+from app.models.locations import Country, City, Nationality
 
 # Users & Profiles
 from app.models.users import User

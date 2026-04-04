@@ -12,11 +12,13 @@ class TripVacancyCreateRequest(BaseModel):
     end_date: date
     min_budget: Optional[Decimal] = Field(None, ge=0)
     max_budget: Optional[Decimal] = Field(None, ge=0)
-    people_needed: int = Field(..., ge=1)
-    description: Optional[str] = None
-    min_age: Optional[int] = Field(None, ge=0, le=120)
-    max_age: Optional[int] = Field(None, ge=0, le=120)
-    gender_preference: Optional[str] = Field(None, max_length=20)
+    people_needed: int = Field(..., ge=1, le=20)
+    description: Optional[str] = Field(None, max_length=2000)
+    min_age: Optional[int] = Field(None, ge=16, le=100)
+    max_age: Optional[int] = Field(None, ge=16, le=100)
+    male_needed: Optional[int] = Field(None, ge=0, le=20)
+    female_needed: Optional[int] = Field(None, ge=0, le=20)
+    nationality_preference_id: Optional[int] = None
 
 
 class TripVacancyUpdateRequest(BaseModel):
@@ -26,12 +28,13 @@ class TripVacancyUpdateRequest(BaseModel):
     end_date: Optional[date] = None
     min_budget: Optional[Decimal] = Field(None, ge=0)
     max_budget: Optional[Decimal] = Field(None, ge=0)
-    people_needed: Optional[int] = Field(None, ge=1)
-    description: Optional[str] = None
-    min_age: Optional[int] = Field(None, ge=0, le=120)
-    max_age: Optional[int] = Field(None, ge=0, le=120)
-    gender_preference: Optional[str] = Field(None, max_length=20)
-    status: Optional[str] = Field(None, max_length=20)
+    people_needed: Optional[int] = Field(None, ge=1, le=20)
+    description: Optional[str] = Field(None, max_length=2000)
+    min_age: Optional[int] = Field(None, ge=16, le=100)
+    max_age: Optional[int] = Field(None, ge=16, le=100)
+    male_needed: Optional[int] = Field(None, ge=0, le=20)
+    female_needed: Optional[int] = Field(None, ge=0, le=20)
+    nationality_preference_id: Optional[int] = None
 
 
 class OfferCreateRequest(BaseModel):

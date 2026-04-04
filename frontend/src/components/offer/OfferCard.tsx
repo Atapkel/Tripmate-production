@@ -7,8 +7,15 @@ import type { Offer } from "@/types/offer";
 const statusVariant: Record<string, "warning" | "success" | "error" | "default"> = {
   pending: "warning",
   accepted: "success",
-  rejected: "error",
+  rejected: "default",
   cancelled: "default",
+};
+
+const statusLabel: Record<string, string> = {
+  pending: "Pending",
+  accepted: "Accepted",
+  rejected: "Rejected",
+  cancelled: "Cancelled",
 };
 
 interface OfferCardProps {
@@ -34,10 +41,20 @@ export function OfferCard({ offer, actions, children }: OfferCardProps) {
           </div>
         </div>
       )}
-      <div className="flex items-start justify-between mb-2">
+      <div className="flex items-start justify-between gap-2 mb-2">
         <span className="text-sm text-text-secondary">{formatRelativeTime(offer.created_at)}</span>
-        <Badge variant={statusVariant[offer.status] || "default"}>{offer.status}</Badge>
+        <Badge
+          variant={statusVariant[offer.status] || "default"}
+          className="normal-case shrink-0"
+        >
+          {statusLabel[offer.status] ?? offer.status}
+        </Badge>
       </div>
+      {offer.status === "rejected" && (
+        <p className="text-xs text-text-tertiary -mt-1 mb-1">
+          The trip organizer did not accept this offer.
+        </p>
+      )}
       {children}
       {offer.message && (
         <p className="text-sm text-text-secondary mt-2 line-clamp-3">{offer.message}</p>

@@ -1,5 +1,5 @@
 import api from "./api";
-import type { CountryResponse, CityResponse, LanguageResponse, InterestResponse, TravelStyleResponse } from "@/types/common";
+import type { CountryResponse, CityResponse, LanguageResponse, InterestResponse, TravelStyleResponse, NationalityResponse } from "@/types/common";
 
 export const optionsService = {
   getCountries: () =>
@@ -16,4 +16,7 @@ export const optionsService = {
 
   getTravelStyles: () =>
     api.get<TravelStyleResponse[]>("/options/travel-styles"),
+
+  getNationalities: () =>
+    api.get<NationalityResponse[]>("/options/nationalities"),
 };

@@ -29,15 +29,21 @@ class TripVacancy(Base):
     people_needed = Column(Integer, nullable=False)
     people_joined = Column(Integer, default=0, nullable=False)
 
+    # Gender-specific capacity (null = any gender)
+    male_needed = Column(Integer, nullable=True)
+    female_needed = Column(Integer, nullable=True)
+    male_joined = Column(Integer, default=0, nullable=False)
+    female_joined = Column(Integer, default=0, nullable=False)
+
     # Details
     description = Column(Text, nullable=True)
- 
+
     # Preference filters
     min_age = Column(Integer, nullable=True)
     max_age = Column(Integer, nullable=True)
-    gender_preference = Column(String(20), nullable=True)
+    nationality_preference_id = Column(Integer, ForeignKey("nationalities.id"), nullable=True, index=True)
 
-    # Status: open, matched, closed, cancelled
+    # Status: open, matched, closed, cancelled, deleted_by_host (soft delete; chat kept)
     status = Column(String(20), default="open", nullable=False)
 
     created_at = Column(DateTime, default=func.now(), nullable=False)
@@ -46,6 +52,7 @@ class TripVacancy(Base):
     # Relationships
     destination_country = relationship("Country", lazy="joined")
     destination_city = relationship("City", lazy="joined")
+    nationality_preference = relationship("Nationality", lazy="joined")
     requester = relationship("User", back_populates="trip_vacancies")
     offers = relationship("Offer", back_populates="vacancy", cascade="all, delete-orphan")
     chat_group = relationship("ChatGroup", uselist=False, back_populates="trip_vacancy", cascade="all, delete-orphan")
@@ -79,6 +86,7 @@ class Offer(Base):
     status = Column(String(20), default="pending", nullable=False)
 
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    offerer_outcome_seen_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 

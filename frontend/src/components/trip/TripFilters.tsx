@@ -15,6 +15,11 @@ export function TripFilters({ onApply }: { onApply?: () => void }) {
     queryFn: () => optionsService.getCountries().then((r) => r.data),
   });
 
+  const { data: nationalities } = useQuery({
+    queryKey: queryKeys.options.nationalities,
+    queryFn: () => optionsService.getNationalities().then((r) => r.data),
+  });
+
   return (
     <div className="space-y-5">
       <h3 className="text-sm font-heading font-bold text-text-primary">Filters</h3>
@@ -54,12 +59,21 @@ export function TripFilters({ onApply }: { onApply?: () => void }) {
       </div>
 
       <Select
-        id="gender_pref"
-        label="Gender preference"
+        id="gender_filter"
+        label="Your gender"
         placeholder="Any"
-        options={[{ value: "male", label: "Male" }, { value: "female", label: "Female" }, { value: "any", label: "Any" }]}
-        value={filters.gender_preference || ""}
-        onChange={(e) => setFilters({ gender_preference: e.target.value || undefined })}
+        options={[{ value: "male", label: "Male" }, { value: "female", label: "Female" }]}
+        value={filters.gender || ""}
+        onChange={(e) => setFilters({ gender: e.target.value || undefined })}
+      />
+
+      <Select
+        id="nationality_filter"
+        label="Nationality preference"
+        placeholder="Any nationality"
+        options={(nationalities || []).map((n) => ({ value: n.id, label: n.name }))}
+        value={filters.nationality_preference_id || ""}
+        onChange={(e) => setFilters({ nationality_preference_id: e.target.value ? Number(e.target.value) : undefined })}
       />
 
       <div className="flex gap-2 pt-2">

@@ -101,21 +101,22 @@ async def get_trip(
 
 @router.get("", response_model=List[TripVacancyResponse])
 async def list_trips(
-        skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=100),
-        destination_city: Optional[str] = None,
-        destination_country: Optional[str] = None,
-        trip_status: Optional[str] = Query(None, alias="status"),
-        start_date_from: Optional[date] = None,
-        start_date_to: Optional[date] = None,
-        min_age: Optional[int] = Query(None, ge=0, le=150),
-        max_age: Optional[int] = Query(None, ge=0, le=150),
-        min_budget: Optional[float] = Query(None, ge=0),
-        max_budget: Optional[float] = Query(None, ge=0),
-        gender_preference: Optional[str] = Query(None, pattern="^(male|female|any)$"),
-        from_city: Optional[str] = None,
-        from_country: Optional[str] = None,
-        db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    destination_city: Optional[str] = None,
+    destination_country: Optional[str] = None,
+    trip_status: Optional[str] = Query(None, alias="status", pattern="^(open|matched|closed|cancelled)$"),
+    start_date_from: Optional[date] = None,
+    start_date_to: Optional[date] = None,
+    min_age: Optional[int] = Query(None, ge=0, le=150),
+    max_age: Optional[int] = Query(None, ge=0, le=150),
+    min_budget: Optional[float] = Query(None, ge=0),
+    max_budget: Optional[float] = Query(None, ge=0),
+    gender: Optional[str] = Query(None, pattern="^(male|female)$"),
+    nationality_preference_id: Optional[int] = None,
+    from_city: Optional[str] = None,
+    from_country: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
 ):
     service = TripVacancyService(db)
     return await service.get_all_trip_vacancies(
@@ -130,7 +131,8 @@ async def list_trips(
         max_age=max_age,
         min_budget=min_budget,
         max_budget=max_budget,
-        gender_preference=gender_preference,
+        gender=gender,
+        nationality_preference_id=nationality_preference_id,
         from_city=from_city,
         from_country=from_country,
     )
@@ -187,4 +189,6 @@ async def delete_trip(
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
-    return {"message": "Trip deleted successfully"}
+    return {
+        "message": "Trip removed. Members can still read the chat; new messages are disabled.",
+    }

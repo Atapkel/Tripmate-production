@@ -9,7 +9,7 @@ class Message(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     chat_group_id = Column(Integer, ForeignKey("chat_groups.id", ondelete="CASCADE"), nullable=False)
-    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
 
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=func.now(), nullable=False)

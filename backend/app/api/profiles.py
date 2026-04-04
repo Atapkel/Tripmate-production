@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_current_user
 from app.core.database import get_db
 from app.models.users import User
+from app.repositories.user_repository import UserRepository
 from app.schemas.common import MessageResponse
 from app.schemas.profiles import (
     ProfileCreateRequest,
@@ -78,16 +79,16 @@ async def update_my_profile(
 
 
 @router.delete("", response_model=MessageResponse)
-async def delete_my_profile(
+async def delete_my_account(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    service = ProfileService(db)
-    success, error = await service.delete_profile_by_user_id(user_id=current_user.id)
+    user_repo = UserRepository(db)
+    success = await user_repo.soft_delete(current_user.id)
     if not success:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to delete account")
 
-    return {"message": "Profile deleted successfully"}
+    return {"message": "Account deleted successfully"}
 
 
 # ── Photo ──────────────────────────────────────────────────────────────
