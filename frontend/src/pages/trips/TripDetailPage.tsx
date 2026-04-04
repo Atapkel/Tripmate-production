@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -67,6 +67,38 @@ export default function TripDetailPage() {
     );
 
   const isRemoved = trip?.status === "deleted_by_host";
+
+  const { data: receivedOffersPoll } = useQuery({
+    queryKey: queryKeys.offers.received,
+    queryFn: () => offerService.getReceived().then((r) => r.data),
+    enabled: !!isOwner && !!trip && !isRemoved,
+    refetchInterval: 12_000,
+  });
+
+  const pendingOnTripRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!isOwner || !trip || isRemoved || receivedOffersPoll === undefined) return;
+
+    const pending = receivedOffersPoll.filter(
+      (o) => o.trip_vacancy_id === trip.id && o.status === "pending",
+    ).length;
+
+    if (pendingOnTripRef.current === null) {
+      pendingOnTripRef.current = pending;
+      return;
+    }
+    if (pending > pendingOnTripRef.current) {
+      const label = [trip.destination_city?.name, trip.destination_country?.name]
+        .filter(Boolean)
+        .join(", ");
+      toast.success(label ? `New offer for ${label}` : "New offer on your trip");
+    }
+    pendingOnTripRef.current = pending;
+  }, [receivedOffersPoll, isOwner, trip, isRemoved]);
+
+  useEffect(() => {
+    pendingOnTripRef.current = null;
+  }, [trip?.id]);
 
   const { data: tripChat } = useQuery({
     queryKey: ["chats", "by-trip", trip?.id ?? 0] as const,

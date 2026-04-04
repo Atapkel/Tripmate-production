@@ -22,6 +22,7 @@ def upgrade() -> None:
         "messages",
         "sender_id",
         existing_type=sa.Integer(),
+        existing_nullable=False,
         nullable=True,
     )
 
@@ -41,5 +42,6 @@ def downgrade() -> None:
         "messages",
         "sender_id",
         existing_type=sa.Integer(),
+        existing_nullable=True,
         nullable=False,
     )

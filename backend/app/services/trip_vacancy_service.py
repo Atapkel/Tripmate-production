@@ -223,8 +223,10 @@ class TripVacancyService:
                     "New messages are disabled."
                 )
                 await self.message_repo.create(chat_group.id, None, notice)
+                # chat_groups.updated_at is TIMESTAMP WITHOUT TIME ZONE; asyncpg rejects tz-aware datetimes.
                 await self.chat_group_repo.update(
-                    chat_group, updated_at=datetime.now(timezone.utc)
+                    chat_group,
+                    updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
                 )
 
             offers = await self.offer_repo.get_by_trip_vacancy_id(trip_vacancy_id)

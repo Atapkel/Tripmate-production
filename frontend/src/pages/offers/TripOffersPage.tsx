@@ -37,6 +37,9 @@ export default function TripOffersPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.received });
       queryClient.invalidateQueries({ queryKey: queryKeys.offers.mine });
       queryClient.invalidateQueries({ queryKey: queryKeys.chats.mine });
+      queryClient.invalidateQueries({
+        queryKey: ["chats", "by-trip", Number(id)] as const,
+      });
       toast.success(status === "accepted" ? "Offer accepted! Chat created." : "Offer rejected.");
       setConfirmAction(null);
     },

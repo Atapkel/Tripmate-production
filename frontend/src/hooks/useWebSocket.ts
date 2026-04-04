@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
 import { useChatStore } from "@/stores/chatStore";
+import { queryKeys } from "@/lib/queryKeys";
 import type { ChatMessage } from "@/types/chat";
 
 const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -8,6 +10,7 @@ const WS_BASE = import.meta.env.VITE_WS_BASE_URL || `${wsProtocol}//${window.loc
 const MAX_RECONNECT = 5;
 
 export function useWebSocket(chatId: number | string | null) {
+  const queryClient = useQueryClient();
   const { accessToken } = useAuthStore();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
@@ -52,11 +55,24 @@ export function useWebSocket(chatId: number | string | null) {
                 created_at: data.created_at,
               };
               addMessage(Number(chatId), msg);
+              if (data.sender_id == null) {
+                queryClient.invalidateQueries({ queryKey: queryKeys.chats.mine });
+              }
               break;
             }
             case "typing":
               setTyping(Number(chatId), data.user_id, data.is_typing);
               break;
+            case "offer_received": {
+              queryClient.invalidateQueries({ queryKey: queryKeys.offers.received });
+              const tid = data.trip_vacancy_id as number | undefined;
+              if (tid != null) {
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.offers.forTrip(tid),
+                });
+              }
+              break;
+            }
           }
         } catch {
           // ignore malformed messages
