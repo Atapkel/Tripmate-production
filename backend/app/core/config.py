@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-3-flash-preview"
     GEMINI_TIMEOUT_SECONDS: int
     GOOGLE_CLIENT_ID: str
-
+    GOOGLE_CLIENT_SECRET: str
     # Unsplash API
     UNSPLASH_ACCESS_KEY: str
     UNSPLASH_SECRET_KEY: str

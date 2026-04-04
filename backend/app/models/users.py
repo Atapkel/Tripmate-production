@@ -9,7 +9,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
-    password = Column(String(255), nullable=False)
+    password = Column(String(255), nullable=True)
     role = Column(String(50), default="user", nullable=False)
 
     is_verified = Column(Boolean, default=False)

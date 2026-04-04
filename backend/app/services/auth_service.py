@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import config
@@ -56,11 +57,67 @@ class AuthService:
         self, email: str, password: str
     ) -> Tuple[bool, Optional[dict], Optional[User], Optional[str]]:
         user = await self.user_repo.get_by_email(email)
-        if not user or not verify_password(password, user.password):
+        if not user or not user.password or not verify_password(password, user.password):
             return False, None, None, "Invalid email or password"
 
         if not user.is_active:
             return False, None, None, "Account is deactivated"
+
+        tokens = create_token_pair(data={"sub": str(user.id), "email": user.email})
+        return True, tokens, user, None
+
+    # ── GOOGLE OAUTH ────────────────────────────────────────────────────
+
+    async def google_authenticate(
+        self, code: str, redirect_uri: str
+    ) -> Tuple[bool, Optional[dict], Optional[User], Optional[str]]:
+        # Exchange authorization code for tokens
+        async with httpx.AsyncClient() as client:
+            token_response = await client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "code": code,
+                    "client_id": config.GOOGLE_CLIENT_ID,
+                    "client_secret": config.GOOGLE_CLIENT_SECRET,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+            )
+
+        if token_response.status_code != 200:
+            logger.error("Google token exchange failed: %s", token_response.text)
+            return False, None, None, "Failed to authenticate with Google"
+
+        token_data = token_response.json()
+
+        # Get user info from Google
+        async with httpx.AsyncClient() as client:
+            userinfo_response = await client.get(
+                "https://www.googleapis.com/oauth2/v2/userinfo",
+                headers={"Authorization": f"Bearer {token_data['access_token']}"},
+            )
+
+        if userinfo_response.status_code != 200:
+            logger.error("Google userinfo failed: %s", userinfo_response.text)
+            return False, None, None, "Failed to get user info from Google"
+
+        userinfo = userinfo_response.json()
+        email = userinfo.get("email")
+        if not email:
+            return False, None, None, "Google account has no email"
+
+        # Find or create user
+        user = await self.user_repo.get_by_email(email)
+        if not user:
+            user = await self.user_repo.create(email=email, password="", role="user")
+            # Mark as verified since Google already verified the email
+            await self.user_repo.verify_user(user.id)
+            user.is_verified = True
+        elif not user.is_active:
+            return False, None, None, "Account is deactivated"
+        elif not user.is_verified:
+            await self.user_repo.verify_user(user.id)
+            user.is_verified = True
 
         tokens = create_token_pair(data={"sub": str(user.id), "email": user.email})
         return True, tokens, user, None

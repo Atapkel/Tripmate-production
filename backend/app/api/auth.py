@@ -1,7 +1,8 @@
 import logging
 from datetime import timedelta
+from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +16,7 @@ from app.models.users import User
 from app.schemas.auth import (
     AuthResponse,
     EmailVerificationRequest,
+    GoogleAuthRequest,
     PasswordChange,
     PasswordResetRequest,
     PasswordResetVerify,
@@ -91,6 +93,46 @@ async def logout(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
     return {"message": "Logged out successfully"}
+
+
+# ── Google OAuth ──────────────────────────────────────────────────────
+
+
+@router.get("/google/url")
+async def google_auth_url(redirect_uri: str = Query(...)):
+    params = urlencode({
+        "client_id": config.GOOGLE_CLIENT_ID,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "consent",
+    })
+    return {"url": f"https://accounts.google.com/o/oauth2/v2/auth?{params}"}
+
+
+@router.post("/google", response_model=AuthResponse)
+async def google_auth(
+    request: GoogleAuthRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    auth_service = AuthService(db)
+    success, tokens, user, error = await auth_service.google_authenticate(
+        code=request.code,
+        redirect_uri=request.redirect_uri,
+    )
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=error,
+        )
+
+    return {
+        "access_token": tokens["access_token"],
+        "refresh_token": tokens["refresh_token"],
+        "token_type": "bearer",
+        "user": user,
+    }
 
 
 # ── Token ──────────────────────────────────────────────────────────────

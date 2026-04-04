@@ -1,5 +1,6 @@
 from app.schemas.auth.requests import (
     EmailVerificationRequest,
+    GoogleAuthRequest,
     PasswordChange,
     PasswordResetRequest,
     PasswordResetVerify,
@@ -18,6 +19,7 @@ from app.schemas.auth.responses import (
 __all__ = [
     "UserRegisterRequest",
     "UserLoginRequest",
+    "GoogleAuthRequest",
     "PasswordResetRequest",
     "PasswordResetVerify",
     "PasswordChange",

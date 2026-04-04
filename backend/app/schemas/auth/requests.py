@@ -39,3 +39,8 @@ class ResendVerificationRequest(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+
+class GoogleAuthRequest(BaseModel):
+    code: str
+    redirect_uri: str
