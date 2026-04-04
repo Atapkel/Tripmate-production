@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
 import { Avatar } from "@/components/ui/Avatar";
+import { TripStatusBadge } from "@/components/trip/TripStatusBadge";
 import { formatRelativeTime } from "@/lib/formatters";
 import type { ChatGroup } from "@/types/chat";
 
@@ -21,9 +22,19 @@ export function ChatListItem({ chat, isActive, onClick, unreadCount }: ChatListI
     >
       <Avatar initials={chat.name.charAt(0)} size="md" />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-text-primary truncate">{chat.name}</p>
-          <span className="text-xs text-text-tertiary">{formatRelativeTime(chat.updated_at)}</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="text-sm font-semibold text-text-primary truncate">{chat.name}</p>
+            {chat.trip_status === "deleted_by_host" && (
+              <TripStatusBadge
+                status="deleted_by_host"
+                className="shrink-0 text-[10px] px-2 py-0 font-semibold"
+              />
+            )}
+          </div>
+          <span className="text-xs text-text-tertiary shrink-0">
+            {formatRelativeTime(chat.updated_at)}
+          </span>
         </div>
       </div>
       {!!unreadCount && unreadCount > 0 && (

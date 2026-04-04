@@ -24,12 +24,20 @@ class ChatGroupRepository:
     # ── READ ────────────────────────────────────────────────────────────
 
     async def get_by_id(self, chat_group_id: int) -> Optional[ChatGroup]:
-        query = select(ChatGroup).filter(ChatGroup.id == chat_group_id)
+        query = (
+            select(ChatGroup)
+            .filter(ChatGroup.id == chat_group_id)
+            .options(selectinload(ChatGroup.trip_vacancy))
+        )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
     async def get_by_trip_vacancy_id(self, trip_vacancy_id: int) -> Optional[ChatGroup]:
-        query = select(ChatGroup).filter(ChatGroup.trip_vacancy_id == trip_vacancy_id)
+        query = (
+            select(ChatGroup)
+            .filter(ChatGroup.trip_vacancy_id == trip_vacancy_id)
+            .options(selectinload(ChatGroup.trip_vacancy))
+        )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
@@ -40,7 +48,10 @@ class ChatGroupRepository:
             select(ChatGroup)
             .join(ChatMember, ChatGroup.id == ChatMember.chat_group_id)
             .filter(ChatMember.user_id == user_id)
-            .options(selectinload(ChatGroup.members))
+            .options(
+                selectinload(ChatGroup.members),
+                selectinload(ChatGroup.trip_vacancy),
+            )
             .order_by(ChatGroup.updated_at.desc())
             .offset(skip)
             .limit(limit)

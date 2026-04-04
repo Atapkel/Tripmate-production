@@ -6,6 +6,8 @@ export interface ChatGroup {
   updated_at: string;
   /** From GET /chats/me; omitted on older API versions. */
   unread_count?: number;
+  /** Linked trip vacancy status (e.g. deleted_by_host). */
+  trip_status?: string | null;
 }
 
 export interface ChatMember {

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -32,6 +33,14 @@ export default function RecommendationsPage() {
   });
 
   const isLoading = tripsLoading || plansLoading;
+
+  const tripsForRecommendations = useMemo(
+    () =>
+      myTrips?.filter(
+        (t) => t.status !== "deleted_by_host" && t.status !== "cancelled",
+      ) ?? [],
+    [myTrips],
+  );
 
   if (isLoading) {
     return (
@@ -69,13 +78,30 @@ export default function RecommendationsPage() {
     );
   }
 
+  if (tripsForRecommendations.length === 0) {
+    return (
+      <PageContainer>
+        <EmptyState
+          icon={<Sparkles className="h-12 w-12" />}
+          title="No active trips for recommendations"
+          description="Removed or cancelled trips are not shown here. Open My Trips to review them, or create a new trip."
+          action={
+            <Button variant="outline" onClick={() => navigate(ROUTES.MY_TRIPS)}>
+              My Trips
+            </Button>
+          }
+        />
+      </PageContainer>
+    );
+  }
+
   const plansByTrip = new Map<number, TripPlan>();
   plans?.forEach((plan) => plansByTrip.set(plan.trip_vacancy_id, plan));
 
   return (
     <PageContainer>
       <div className="space-y-6">
-        {myTrips.map((trip) => (
+        {tripsForRecommendations.map((trip) => (
           <TripRecommendationSection
             key={trip.id}
             trip={trip}

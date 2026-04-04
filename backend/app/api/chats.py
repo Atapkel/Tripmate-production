@@ -27,6 +27,11 @@ from app.services.chat_service import ChatService
 router = APIRouter(prefix="/chats", tags=["Chats"])
 
 
+def _chat_trip_status(group) -> str | None:
+    vacancy = getattr(group, "trip_vacancy", None)
+    return vacancy.status if vacancy is not None else None
+
+
 # ── Groups ─────────────────────────────────────────────────────────────
 
 @router.get("/me", response_model=List[ChatGroupResponse])
@@ -46,6 +51,7 @@ async def get_my_chat_groups(
             created_at=g.created_at,
             updated_at=g.updated_at,
             unread_count=n,
+            trip_status=_chat_trip_status(g),
         )
         for g, n in rows
     ]
@@ -87,6 +93,7 @@ async def get_chat_group(
         created_at=group.created_at,
         updated_at=group.updated_at,
         unread_count=unread,
+        trip_status=_chat_trip_status(group),
     )
 
 
@@ -111,6 +118,7 @@ async def get_chat_group_by_trip(
         created_at=group.created_at,
         updated_at=group.updated_at,
         unread_count=unread,
+        trip_status=_chat_trip_status(group),
     )
 
 

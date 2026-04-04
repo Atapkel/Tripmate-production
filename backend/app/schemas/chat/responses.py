@@ -11,6 +11,7 @@ class ChatGroupResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     unread_count: int = 0
+    trip_status: Optional[str] = None
 
     class Config:
         from_attributes = True

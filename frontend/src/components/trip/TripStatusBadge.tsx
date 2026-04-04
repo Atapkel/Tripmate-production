@@ -1,3 +1,4 @@
+import { clsx } from "clsx";
 import { Badge } from "@/components/ui/Badge";
 
 const variant: Record<string, "success" | "info" | "default" | "error"> = {
@@ -9,13 +10,27 @@ const variant: Record<string, "success" | "info" | "default" | "error"> = {
 };
 
 const labels: Record<string, string> = {
-  deleted_by_host: "Removed by host",
+  open: "Open",
+  matched: "Matched",
+  closed: "Closed",
+  cancelled: "Cancelled",
+  deleted_by_host: "Deleted by host",
 };
 
-export function TripStatusBadge({ status }: { status: string }) {
+export function TripStatusBadge({
+  status,
+  className,
+}: {
+  status: string;
+  className?: string;
+}) {
+  const label = labels[status] ?? status.replace(/_/g, " ");
   return (
-    <Badge variant={variant[status] || "default"}>
-      {labels[status] ?? status.replace(/_/g, " ")}
+    <Badge
+      variant={variant[status] || "default"}
+      className={clsx("normal-case", className)}
+    >
+      {label}
     </Badge>
   );
 }
