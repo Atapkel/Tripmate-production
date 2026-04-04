@@ -66,7 +66,7 @@ async def list_trips(
     limit: int = Query(100, ge=1, le=100),
     destination_city: Optional[str] = None,
     destination_country: Optional[str] = None,
-    trip_status: Optional[str] = Query(None, alias="status"),
+    trip_status: Optional[str] = Query(None, alias="status", pattern="^(open|matched|closed|cancelled)$"),
     start_date_from: Optional[date] = None,
     start_date_to: Optional[date] = None,
     min_age: Optional[int] = Query(None, ge=0, le=150),

@@ -56,6 +56,8 @@ class TripVacancyService:
 
             start_date = data.get("start_date")
             end_date = data.get("end_date")
+            if start_date and start_date < date.today():
+                return False, None, "Start date cannot be in the past"
             if start_date and end_date and start_date >= end_date:
                 return False, None, "End date must be after start date"
 
@@ -253,7 +255,7 @@ class TripVacancyService:
             offers = await self.offer_repo.get_by_trip_vacancy_id(trip_vacancy_id)
             now = datetime.now(timezone.utc)
             for offer in offers:
-                if offer.status == "pending":
+                if offer.status in ("pending", "accepted"):
                     await self.offer_repo.update_status(
                         offer, "cancelled", reviewed_at=now
                     )

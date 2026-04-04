@@ -23,7 +23,7 @@ export default function CreateTripPage() {
 
   const { register, handleSubmit, control, watch, setValue, formState: { errors, isSubmitting } } = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
-    defaultValues: { people_needed: 1, gender_preference: "any", min_budget: 0, max_budget: 10000000, min_age: 16, max_age: 100 },
+    defaultValues: { people_needed: 1, gender_preference: "any", min_budget: 0, max_budget: 1000000, min_age: 16, max_age: 100 },
   });
 
   const destCountryId = watch("destination_country_id");
@@ -44,6 +44,7 @@ export default function CreateTripPage() {
     mutationFn: (data: TripFormData) => tripService.create(data),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.trips.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.trips.mine });
       toast.success("Trip created!");
       navigate(ROUTES.TRIP_DETAIL(res.data.id));
     },
@@ -83,7 +84,7 @@ export default function CreateTripPage() {
           </div>
 
           <h3 className="text-sm font-semibold text-text-primary pt-2">Companion Preferences</h3>
-          <Input id="people_needed" label="People Needed" type="number" min={1} max={20} {...register("people_needed", { valueAsNumber: true })} />
+          <Input id="people_needed" label="People Needed" type="number" min={1} max={20} error={errors.people_needed?.message} {...register("people_needed", { valueAsNumber: true })} />
           <div className="grid grid-cols-2 gap-3">
             <Input id="min_age" label="Min Age" type="number" min={16} max={100} error={errors.min_age?.message} {...register("min_age", { valueAsNumber: true })} />
             <Input id="max_age" label="Max Age" type="number" min={16} max={100} error={errors.max_age?.message} {...register("max_age", { valueAsNumber: true })} />

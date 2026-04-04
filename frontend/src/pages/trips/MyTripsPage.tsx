@@ -17,6 +17,7 @@ import { ROUTES } from "@/lib/constants";
 const tabs = [
   { key: "all", label: "All" },
   { key: "open", label: "Open" },
+  { key: "matched", label: "Matched" },
   { key: "closed", label: "Closed" },
   { key: "cancelled", label: "Cancelled" },
   { key: "removed", label: "Removed" },

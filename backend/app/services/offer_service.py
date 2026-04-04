@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,8 +44,33 @@ class OfferService:
             if trip_vacancy.status != "open":
                 return False, None, "Trip vacancy is not active"
 
+            if trip_vacancy.end_date < date.today():
+                return False, None, "This trip has already ended"
+
             if trip_vacancy.requester_id == offerer_id:
                 return False, None, "You cannot make an offer for your own trip vacancy"
+
+            # Enforce gender and age preferences
+            profile = await self.profile_repo.get_by_user_id(offerer_id)
+            if not profile:
+                return False, None, "You must complete your profile before making an offer"
+
+            if (
+                trip_vacancy.gender_preference
+                and trip_vacancy.gender_preference != "any"
+                and profile.gender != trip_vacancy.gender_preference
+            ):
+                return False, None, f"This trip is looking for {trip_vacancy.gender_preference} travelers only"
+
+            if profile.date_of_birth:
+                today = date.today()
+                age = today.year - profile.date_of_birth.year - (
+                    (today.month, today.day) < (profile.date_of_birth.month, profile.date_of_birth.day)
+                )
+                if trip_vacancy.min_age is not None and age < trip_vacancy.min_age:
+                    return False, None, f"This trip requires travelers aged {trip_vacancy.min_age} or older"
+                if trip_vacancy.max_age is not None and age > trip_vacancy.max_age:
+                    return False, None, f"This trip requires travelers aged {trip_vacancy.max_age} or younger"
 
             existing = await self.offer_repo.check_existing_offer(trip_vacancy_id, offerer_id)
             if existing:

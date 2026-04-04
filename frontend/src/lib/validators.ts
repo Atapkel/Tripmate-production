@@ -65,7 +65,7 @@ export const tripSchema = z.object({
   destination_city_id: z.number({ error: "Select destination city" }),
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
-  max_budget: z.number().min(1, "Budget must be positive").max(10_000_000, "Budget seems unrealistic").optional(),
+  max_budget: z.number().min(1, "Budget must be positive").max(1_000_000, "Budget seems unrealistic").optional(),
   min_budget: z.number().min(0).optional(),
   people_needed: z.number().min(1, "At least 1 person needed").max(20, "Maximum 20 people allowed"),
   min_age: z.number().min(16).max(100).optional(),
@@ -73,11 +73,17 @@ export const tripSchema = z.object({
   gender_preference: z.string().optional(),
   description: z
     .string()
-    .min(20, "Describe your trip in at least 20 characters")
-    .max(2000, "Description is too long"),
+    .refine((val) => val.trim().length >= 20, "Describe your trip in at least 20 characters")
+    .refine((val) => val.length <= 2000, "Description is too long"),
 }).refine((data) => new Date(data.end_date) > new Date(data.start_date), {
   message: "End date must be after start date",
   path: ["end_date"],
+}).refine((data) => !data.min_budget || !data.max_budget || data.min_budget <= data.max_budget, {
+  message: "Min budget cannot exceed max budget",
+  path: ["min_budget"],
+}).refine((data) => !data.min_age || !data.max_age || data.min_age <= data.max_age, {
+  message: "Min age cannot exceed max age",
+  path: ["min_age"],
 });
 
 export const offerSchema = z.object({
