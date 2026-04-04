@@ -71,6 +71,18 @@ class TripVacancyService:
             if min_age is not None and max_age is not None and min_age > max_age:
                 return False, None, "Max age must be greater than or equal to min age"
 
+            # Validate gender split
+            male_needed = data.get("male_needed")
+            female_needed = data.get("female_needed")
+            people_needed = data.get("people_needed")
+            if male_needed is not None and female_needed is not None:
+                if male_needed + female_needed != people_needed:
+                    return False, None, "Male needed + female needed must equal people needed"
+            elif male_needed is not None and female_needed is None:
+                return False, None, "Please specify both male and female counts, or leave both empty for any gender"
+            elif male_needed is None and female_needed is not None:
+                return False, None, "Please specify both male and female counts, or leave both empty for any gender"
+
             trip_vacancy = await self.trip_vacancy_repo.create(
                 requester_id=requester_id, **data
             )
@@ -115,7 +127,8 @@ class TripVacancyService:
         max_age: Optional[int] = None,
         min_budget: Optional[float] = None,
         max_budget: Optional[float] = None,
-        gender_preference: Optional[str] = None,
+        gender: Optional[str] = None,
+        nationality_preference_id: Optional[int] = None,
         from_city: Optional[str] = None,
         from_country: Optional[str] = None,
     ) -> List[TripVacancy]:
@@ -134,7 +147,8 @@ class TripVacancyService:
             max_age=max_age,
             min_budget=min_budget,
             max_budget=max_budget,
-            gender_preference=gender_preference,
+            gender=gender,
+            nationality_preference_id=nationality_preference_id,
             from_city=from_city,
             from_country=from_country,
         )
@@ -184,6 +198,16 @@ class TripVacancyService:
             mx_age = update_data.get("max_age", trip_vacancy.max_age)
             if mn_age is not None and mx_age is not None and mn_age > mx_age:
                 return False, None, "Max age must be greater than or equal to min age"
+
+            # Validate gender split
+            new_male = update_data.get("male_needed", trip_vacancy.male_needed)
+            new_female = update_data.get("female_needed", trip_vacancy.female_needed)
+            effective_people = update_data.get("people_needed", trip_vacancy.people_needed)
+            if new_male is not None and new_female is not None:
+                if new_male + new_female != effective_people:
+                    return False, None, "Male needed + female needed must equal people needed"
+            elif (new_male is None) != (new_female is None):
+                return False, None, "Please specify both male and female counts, or leave both empty for any gender"
 
             # Validate people_needed vs people_joined
             new_people_needed = update_data.get("people_needed")

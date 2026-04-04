@@ -70,7 +70,9 @@ export const tripSchema = z.object({
   people_needed: z.number().min(1, "At least 1 person needed").max(20, "Maximum 20 people allowed"),
   min_age: z.number().min(16).max(100).optional(),
   max_age: z.number().min(16).max(100).optional(),
-  gender_preference: z.string().optional(),
+  male_needed: z.number().min(0).max(20).nullable().optional(),
+  female_needed: z.number().min(0).max(20).nullable().optional(),
+  nationality_preference_id: z.number().nullable().optional(),
   description: z
     .string()
     .refine((val) => val.trim().length >= 20, "Describe your trip in at least 20 characters")
@@ -84,6 +86,14 @@ export const tripSchema = z.object({
 }).refine((data) => !data.min_age || !data.max_age || data.min_age <= data.max_age, {
   message: "Min age cannot exceed max age",
   path: ["min_age"],
+}).refine((data) => {
+  if (data.male_needed != null && data.female_needed != null) {
+    return data.male_needed + data.female_needed === data.people_needed;
+  }
+  return true;
+}, {
+  message: "Male + female must equal total people needed",
+  path: ["male_needed"],
 });
 
 export const offerSchema = z.object({

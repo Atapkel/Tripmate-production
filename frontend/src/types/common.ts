@@ -35,3 +35,8 @@ export interface TravelStyleResponse {
   id: number;
   name: string;
 }
+
+export interface NationalityResponse {
+  id: number;
+  name: string;
+}

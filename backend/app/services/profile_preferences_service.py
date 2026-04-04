@@ -112,3 +112,6 @@ class ProfilePreferencesService:
 
     async def get_all_travel_styles(self):
         return await self.lookup_repo.get_all_travel_styles()
+
+    async def get_all_nationalities(self):
+        return await self.lookup_repo.get_all_nationalities()

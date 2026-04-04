@@ -168,8 +168,11 @@ export default function TripDetailPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="flex items-center gap-2 text-text-secondary"><Calendar className="h-4 w-4 text-text-tertiary" />{formatDateRange(trip.start_date, trip.end_date)} ({duration} days)</div>
               <div className="flex items-center gap-2 text-text-secondary"><Banknote className="h-4 w-4 text-text-tertiary" />{formatBudgetRange(trip.min_budget, trip.max_budget)}</div>
-              <div className="flex items-center gap-2 text-text-secondary"><Users className="h-4 w-4 text-text-tertiary" />{formatAgeRange(trip.min_age, trip.max_age)} · {trip.gender_preference || "Any gender"}</div>
-              <div className="flex items-center gap-2 text-text-secondary"><MapPin className="h-4 w-4 text-text-tertiary" />{trip.people_joined}/{trip.people_needed} joined</div>
+              <div className="flex items-center gap-2 text-text-secondary"><Users className="h-4 w-4 text-text-tertiary" />{formatAgeRange(trip.min_age, trip.max_age)} · {trip.male_needed != null && trip.female_needed != null ? `${trip.male_needed}M / ${trip.female_needed}F` : "Any gender"}</div>
+              <div className="flex items-center gap-2 text-text-secondary"><MapPin className="h-4 w-4 text-text-tertiary" />{trip.people_joined}/{trip.people_needed} joined{trip.male_needed != null ? ` (${trip.male_joined}M / ${trip.female_joined}F)` : ""}</div>
+              {trip.nationality_preference && (
+                <div className="flex items-center gap-2 text-text-secondary"><Users className="h-4 w-4 text-text-tertiary" />{trip.nationality_preference.name} only</div>
+              )}
               <div className="flex items-center gap-2 text-text-secondary"><Clock className="h-4 w-4 text-text-tertiary" />Created {formatDate(trip.created_at)}</div>
             </div>
             {trip.description && (

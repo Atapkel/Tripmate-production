@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, model_validator
 
-from app.schemas.locations import CityResponse, CountryResponse
+from app.schemas.locations import CityResponse, CountryResponse, NationalityResponse
 
 
 class TripVacancyResponse(BaseModel):
@@ -20,10 +20,15 @@ class TripVacancyResponse(BaseModel):
     max_budget: Optional[Decimal] = None
     people_needed: int
     people_joined: int
+    male_needed: Optional[int] = None
+    female_needed: Optional[int] = None
+    male_joined: int = 0
+    female_joined: int = 0
     description: Optional[str] = None
     min_age: Optional[int] = None
     max_age: Optional[int] = None
-    gender_preference: Optional[str] = None
+    nationality_preference_id: Optional[int] = None
+    nationality_preference: Optional[NationalityResponse] = None
     status: str
     created_at: datetime
     updated_at: datetime

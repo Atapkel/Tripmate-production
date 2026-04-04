@@ -35,5 +35,6 @@ export const queryKeys = {
     languages: ["options", "languages"] as const,
     interests: ["options", "interests"] as const,
     travelStyles: ["options", "travel-styles"] as const,
+    nationalities: ["options", "nationalities"] as const,
   },
 };

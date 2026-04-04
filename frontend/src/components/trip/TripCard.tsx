@@ -33,7 +33,7 @@ export function TripCard({ trip }: TripCardProps) {
         </div>
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 text-blue-400" />
-          <span>{formatAgeRange(trip.min_age, trip.max_age)} · {trip.gender_preference || "Any gender"}</span>
+          <span>{formatAgeRange(trip.min_age, trip.max_age)} · {trip.male_needed != null && trip.female_needed != null ? `${trip.male_needed}M / ${trip.female_needed}F` : "Any gender"}{trip.nationality_preference ? ` · ${trip.nationality_preference.name}` : ""}</span>
         </div>
       </div>
 

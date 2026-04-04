@@ -55,12 +55,24 @@ class OfferService:
             if not profile:
                 return False, None, "You must complete your profile before making an offer"
 
-            if (
-                trip_vacancy.gender_preference
-                and trip_vacancy.gender_preference != "any"
-                and profile.gender != trip_vacancy.gender_preference
-            ):
-                return False, None, f"This trip is looking for {trip_vacancy.gender_preference} travelers only"
+            # Gender slot check
+            if trip_vacancy.male_needed is not None and trip_vacancy.female_needed is not None:
+                if profile.gender == "male":
+                    if trip_vacancy.male_needed == 0:
+                        return False, None, "This trip is looking for female travelers only"
+                    if trip_vacancy.male_joined >= trip_vacancy.male_needed:
+                        return False, None, "All male slots for this trip are filled"
+                elif profile.gender == "female":
+                    if trip_vacancy.female_needed == 0:
+                        return False, None, "This trip is looking for male travelers only"
+                    if trip_vacancy.female_joined >= trip_vacancy.female_needed:
+                        return False, None, "All female slots for this trip are filled"
+
+            # Nationality preference check
+            if trip_vacancy.nationality_preference_id and profile.nationality:
+                nat_name = trip_vacancy.nationality_preference.name if trip_vacancy.nationality_preference else None
+                if nat_name and profile.nationality.lower() != nat_name.lower():
+                    return False, None, f"This trip is looking for {nat_name} travelers only"
 
             if profile.date_of_birth:
                 today = date.today()
@@ -221,10 +233,21 @@ class OfferService:
                     "matched" if new_joined >= trip_vacancy.people_needed else trip_vacancy.status
                 )
 
-                await self.trip_vacancy_repo.update(
-                    trip_vacancy.id,
+                # Track gender-specific join counts
+                update_fields = dict(
                     people_joined=new_joined,
                     status=new_vacancy_status,
+                )
+                if trip_vacancy.male_needed is not None and trip_vacancy.female_needed is not None:
+                    offerer_profile = await self.profile_repo.get_by_user_id(offer.offerer_id)
+                    if offerer_profile and offerer_profile.gender == "male" and trip_vacancy.male_joined < trip_vacancy.male_needed:
+                        update_fields["male_joined"] = trip_vacancy.male_joined + 1
+                    elif offerer_profile and offerer_profile.gender == "female" and trip_vacancy.female_joined < trip_vacancy.female_needed:
+                        update_fields["female_joined"] = trip_vacancy.female_joined + 1
+
+                await self.trip_vacancy_repo.update(
+                    trip_vacancy.id,
+                    **update_fields,
                 )
 
                 # Add offerer to the trip chat group; persist + broadcast a system line for everyone

@@ -16,7 +16,9 @@ class TripVacancyCreateRequest(BaseModel):
     description: Optional[str] = Field(None, max_length=2000)
     min_age: Optional[int] = Field(None, ge=16, le=100)
     max_age: Optional[int] = Field(None, ge=16, le=100)
-    gender_preference: Optional[str] = Field(None, pattern="^(male|female|any)$")
+    male_needed: Optional[int] = Field(None, ge=0, le=20)
+    female_needed: Optional[int] = Field(None, ge=0, le=20)
+    nationality_preference_id: Optional[int] = None
 
 
 class TripVacancyUpdateRequest(BaseModel):
@@ -30,7 +32,9 @@ class TripVacancyUpdateRequest(BaseModel):
     description: Optional[str] = Field(None, max_length=2000)
     min_age: Optional[int] = Field(None, ge=16, le=100)
     max_age: Optional[int] = Field(None, ge=16, le=100)
-    gender_preference: Optional[str] = Field(None, pattern="^(male|female|any)$")
+    male_needed: Optional[int] = Field(None, ge=0, le=20)
+    female_needed: Optional[int] = Field(None, ge=0, le=20)
+    nationality_preference_id: Optional[int] = None
 
 
 class OfferCreateRequest(BaseModel):
